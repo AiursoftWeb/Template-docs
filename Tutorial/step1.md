@@ -1699,7 +1699,7 @@ public DateTime CreationTime { get; init; } = DateTime.UtcNow;
 
 所以这个实体本身创建的时候，就已经将当时的 UTC 时间存储在数据库里了。而转换为当地时区是靠 JavaScript 在用户的设备上实现的。这样可以确保无论用户来自哪个时区，显示的时间都是当地的时间。
 
-最后，为了方便用户在编辑页面能够返回到他们的文档列表，我们在 `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` 文件中，找到提交按钮，在它左侧添加一个返回按钮：
+最后，为了方便用户在编辑页面能够返回到他们的文档列表，我们在 `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` 文件中，找到提交按钮，在它左侧添加一个返回按钮，并且对于已经认证的用户，强调转换按钮有保存的功能。修改如下：
 
 ```html
     @* Submit Button Row *@
@@ -1728,8 +1728,6 @@ public DateTime CreationTime { get; init; } = DateTime.UtcNow;
         </div>
     </div>
 ```
-
-这样，用户在编辑他们的文档时，可以方便地返回到他们的文档列表页面。
 
 现在，不会再有错误了。你可以运行应用程序，在匿名模式下，只能创建并查看 HTML。而在登录后，你可以创建、编辑和查看你自己的文档列表。
 
