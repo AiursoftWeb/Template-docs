@@ -145,7 +145,6 @@ cd MyOrg.MarkToHtml
 ```bash
 cd ./src/MyOrg.MarkToHtml/wwwroot/
 npm install
-cd ../../../ # 回到项目根目录
 ```
 
 你可以使用以下命令来编译项目：
@@ -168,7 +167,7 @@ dotnet run
 * 用户名: `admin`
 * 密码: `admin123`
 
-## Step 1.4 配置项目 (可选)
+## Step 1.4 配置项目使用的数据库 (可选)
 
 > 这一步是完全可选的。如果你想使用默认配置，可以跳过这一步。
 
@@ -215,7 +214,7 @@ dotnet add package HtmlSanitizer
 </ItemGroup>
 ```
 
-## Step 2.2 测试第三方库 (可选)
+## Step 2.2 测试第三方库的工作能力 (可选)
 
 > 这一步是完全可选的，是为了演示如何调试第三方库。如果你相信 Markdig 能够正常工作，可以跳过这一步。
 
@@ -342,8 +341,7 @@ public abstract class Program
 
 ```bash
 cd ./src/MyOrg.MarkToHtml/wwwroot/
-npm install codemirror@5
-cd ../../../ # 回到项目根目录
+npm install codemirror@5 --save
 ```
 
 你会注意到，在上面的命令执行完成后，`./src/MyOrg.MarkToHtml/wwwroot/package.json` 文件中添加了对 CodeMirror 的引用，它看起来可能像这样：
@@ -791,7 +789,7 @@ public class HomeController(
             let markdownEditorInstance;
             let htmlOutputInstance;
 
-            // --- jQuery Validation Setup ---
+            // --- jQuery Validation Setup. Don't ignore hidden fields (CodeMirror will hide the original textarea) ---
             if ($.validator) {
                 $.validator.setDefaults({
                     ignore: []
@@ -846,6 +844,7 @@ public class HomeController(
             const markdownForm = document.getElementById('markdown-form');
             if (themeToggleButton && markdownForm) {
                 themeToggleButton.addEventListener('click', function (event) {
+                    // Submit the form after switching theme to refresh CodeMirror themes
                     setTimeout(() => {
                         markdownForm.submit();
                     }, 1000);
@@ -907,9 +906,9 @@ Aiursoft Template 提供了强大的基础设施，让你能够专注于业务�
 
 我们可以扩展上面的例子，允许用户保存他们的 markdown 文档，并在之后重新编辑甚至分享它们。为此，我们需要添加一个新的数据模型，并改变数据库结构。
 
-在改变数据库结构之前，我们需要先了解一下 Aiursoft Template 使用的数据库 ORM 工具：Entity Framework Core (EF Core)。
+在改变数据库结构之前，我们需要先了解一下 Aiursoft Template 使用的数据库 ORM 工具：[Entity Framework Core (EF Core)](https://learn.microsoft.com/en-us/ef/core/)。
 
-## Step 4.1 理解 Entity Framework Core (EF Core)
+## Step 4.1 理解 Entity Framework Core （可选）
 
 如果你非常熟悉 Entity Framework Core，可以跳过这一步。
 
@@ -943,7 +942,7 @@ LIMIT 10 OFFSET 10;
 
 ## Step 4.2 创建新的数据模型
 
-接下来，我们准备使用 Entity Framework Core 来创建一个新的数据模型，叫做 `MarkdownDocument`，用于存储用户的 markdown 文档。
+接下来，我们准备使用 Entity Framework Core 来创建一个新的数据模型类，叫做 `MarkdownDocument`，用于存储用户的 markdown 文档。其存储在表 `MarkdownDocuments` 中。
 
 为了创建这个数据模型，我们直接修改 `./src/MyOrg.MarkToHtml/Entities/User.cs` 文件：
 
@@ -958,6 +957,12 @@ using System.Text.Json.Serialization;
 添加一个新的类 `MarkdownDocuments`，表示用户拥有的所有 markdown 文档。
 
 ```csharp
+public class User : IdentityUser
+{
+    // ... Existing properties ...
+}
+
+// New entity for storing markdown documents
 public class MarkdownDocument
 {
     [Key]
@@ -1061,6 +1066,8 @@ public class MarkdownDocument
 public DbSet<MarkdownDocument> MarkdownDocuments => Set<MarkdownDocument>();
 ```
 
+当我们将 `TemplateDbContext` 作为数据库上下文类时，Entity Framework Core 会自动识别 `MarkdownDocuments` 属性，并将其映射到数据库中的 `MarkdownDocuments` 表。从而我们可以操作 `dbContext.MarkdownDocuments` 来进行 CRUD 操作。其会自动翻译成相应的 SQL 语句。
+
 最终这个文件看起来可能像这样：
 
 ```csharp
@@ -1082,7 +1089,7 @@ public abstract class TemplateDbContext(DbContextOptions options) : IdentityDbCo
 }
 ```
 
-这样，我们就完成了数据模型的创建。
+这样，我们就完成了数据模型的创建。但是，数据库本身并不存在这个表。因此现在直接运行程序会报错。我们需要创建一个迁移来告诉 EF Core 如何创建这个表。
 
 ## Step 4.3 创建迁移并更新数据库
 
@@ -1194,13 +1201,13 @@ namespace MyOrg.MarkToHtml.Sqlite.Migrations
 }
 ```
 
-接下来，为了创建迁移，我们必须启动一个真正的 MySQL。在开发的时候，我们可以使用 Docker 来快速启动一个 MySQL 实例：
+接下来，为了创建迁移，我们必须启动一个真正的 MySQL。我们可以使用 Docker 来快速启动一个 MySQL 实例：
 
 ```bash
 sudo docker run -d --name db -e MYSQL_RANDOM_ROOT_PASSWORD=true -e MYSQL_DATABASE=template -e MYSQL_USER=template -e MYSQL_PASSWORD=template_password -p 3306:3306 mysql
 ```
 
-这可以启动一个 MySQL 容器，创建一个名为 `template` 的数据库，并创建一个用户 `template`，密码为 `template_password`。你可以根据需要修改这些参数。同时满足了应用程序的连接字符串要求。此时，我们可以使用以下命令来创建迁移：
+这满足了我们的应用程序的连接字符串要求。此时，我们可以使用以下命令来创建迁移：
 
 ```bash
 cd ./src/MyOrg.MarkToHtml.MySql/ # 务必确保你在这个目录下
@@ -1209,7 +1216,7 @@ dotnet ef migrations add AddMarkdownDocumentsTable --context "MySqlContext" -s .
 
 类似的，也会在 `./src/MyOrg.MarkToHtml.MySQL/Migrations/` 目录下生成一个新的迁移文件，名字类似 `20231010123456_AddMarkdownDocumentsTable.cs`。将其内容仔细 Review 一下，确保它符合我们的预期，即可继续。
 
-### Step 4.3.3 清理工作
+### Step 4.3.3 清理工作 删除数据库、回滚 appsettings.json
 
 注意：如果你在创建迁移时遇到错误，提示无法连接到数据库，或者找不到某些类型，可能是因为你的 MySQL 服务器没有正确启动，或者你忘记了修改 `appsettings.json` 文件中的连接字符串。请确保你的 MySQL 服务器正在运行，并且连接字符串正确无误。
 
@@ -1233,7 +1240,9 @@ sudo docker rm db
 }
 ```
 
-## Step 4.4 运行应用并验证（可选）
+每次修改了任何实体类，都应该重复执行上面 4.3.1 和 4.3.2 的步骤，创建新的迁移。如果你还支持了更多的数据库，也应该为它们创建迁移。
+
+## Step 4.4 运行应用并验证数据库自动迁移（可选）
 
 > 这一步是可选的。因为在生产环境中，迁移会在应用启动时自动运行。
 
@@ -1872,190 +1881,6 @@ public class DeleteViewModel : UiStackLayoutViewModel
 
 恭喜你完成了第五步！你现在已经成功地实现了一个完整的 CRUD（创建、读取、更新、删除）功能，允许用户创建、编辑、查看和删除他们的 Markdown 文档。
 
-此时我们的 `HomeController` 可能变成下面的样子：
-
-```csharp
-using System.ComponentModel.DataAnnotations;
-using Aiursoft.CSTools.Tools;
-using MyOrg.MarkToHtml.Models.HomeViewModels;
-using MyOrg.MarkToHtml.Services;
-using Aiursoft.UiStack.Navigation;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MyOrg.MarkToHtml.Entities;
-
-namespace MyOrg.MarkToHtml.Controllers;
-
-public class HomeController(
-    ILogger<HomeController> logger,
-    UserManager<User> userManager,
-    TemplateDbContext context,
-    MarkToHtmlService mtohService) : Controller
-{
-    [RenderInNavBar(
-        NavGroupName = "Features",
-        NavGroupOrder = 1,
-        CascadedLinksGroupName = "Home",
-        CascadedLinksIcon = "home",
-        CascadedLinksOrder = 1,
-        LinkText = "Converter",
-        LinkOrder = 1)]
-    public IActionResult Index()
-    {
-        return this.StackView(new IndexViewModel());
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Index(IndexViewModel model)
-    {
-        if (!ModelState.IsValid)
-        {
-            return this.StackView(model);
-        }
-
-        var userId = userManager.GetUserId(User);
-        if (User.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(userId))
-        {
-            // If the user is authenticated, this action only saves the document in the database. And it's `edit` action to render it.
-            // And go to the edit page.
-            logger.LogTrace("Authenticated user submitted a document with ID: '{Id}'. Save it to the database.",
-                model.DocumentId);
-            var documentInDb = await context.MarkdownDocuments
-                .FirstOrDefaultAsync(d => d.Id == model.DocumentId && d.UserId == userId);
-            if (documentInDb != null)
-            {
-                logger.LogInformation("Updating the document with ID: '{Id}'.", model.DocumentId);
-                documentInDb.Content = model.InputMarkdown.SafeSubstring(65535);
-                documentInDb.Title = model.Title;
-            }
-            else
-            {
-                logger.LogInformation("Creating a new document with ID: '{Id}'.", model.DocumentId);
-                model.DocumentId = Guid.NewGuid();
-                var newDocument = new MarkdownDocument
-                {
-                    Id = model.DocumentId,
-                    Content = model.InputMarkdown.SafeSubstring(65535),
-                    Title = model.InputMarkdown.SafeSubstring(40),
-                    UserId = userId
-                };
-                context.MarkdownDocuments.Add(newDocument);
-            }
-
-            await context.SaveChangesAsync();
-            return RedirectToAction(nameof(Edit), new { id = model.DocumentId });
-        }
-        else
-        {
-            // If the user is not authenticated, just show the result.
-            logger.LogInformation(
-                "An anonymous user submitted a document with ID: '{Id}'. It was not saved to the database.",
-                model.DocumentId);
-            model.OutputHtml = mtohService.ConvertMarkdownToHtml(model.InputMarkdown);
-            return this.StackView(model);
-        }
-    }
-
-    [Authorize]
-    [RenderInNavBar(
-        NavGroupName = "Features",
-        NavGroupOrder = 1,
-        CascadedLinksGroupName = "Home",
-        CascadedLinksIcon = "history",
-        CascadedLinksOrder = 2,
-        LinkText = "My documents",
-        LinkOrder = 2)]
-    public async Task<IActionResult> History()
-    {
-        var userId = userManager.GetUserId(User);
-        var documents = await context.MarkdownDocuments
-            .Where(d => d.UserId == userId)
-            .OrderByDescending(d => d.CreationTime)
-            .ToListAsync();
-
-        var model = new HistoryViewModel
-        {
-            MyDocuments = documents
-        };
-        return this.StackView(model);
-    }
-
-    [Authorize]
-    public async Task<IActionResult> Edit([Required][FromRoute]Guid id)
-    {
-        var userId = userManager.GetUserId(User);
-        var document = await context.MarkdownDocuments.FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
-
-        if (document == null)
-        {
-            return NotFound("The document was not found or you do not have permission to edit it.");
-        }
-
-        var model = new IndexViewModel
-        {
-            DocumentId = document.Id,
-            Title = document.Title,
-            InputMarkdown = document.Content ?? string.Empty,
-            OutputHtml = mtohService.ConvertMarkdownToHtml(document.Content ?? string.Empty),
-            IsEditing = true
-        };
-
-        return this.StackView(model: model, viewName: nameof(Index)); // Reuse the Index view for editing.
-    }
-
-    // GET: /Home/Delete/{guid}
-    [Authorize]
-    public async Task<IActionResult> Delete(Guid? id)
-    {
-        if (id == null)
-        {
-            return NotFound();
-        }
-
-        var userId = userManager.GetUserId(User);
-        var document = await context.MarkdownDocuments
-            .FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
-
-        if (document == null)
-        {
-            // Document not found or user does not have permission.
-            return NotFound();
-        }
-
-        return this.StackView(new DeleteViewModel
-        {
-            Document = document
-        });
-    }
-
-    // POST: /Home/Delete/{guid}
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    [Authorize]
-    public async Task<IActionResult> DeleteConfirmed(Guid id)
-    {
-        var userId = userManager.GetUserId(User);
-        var document = await context.MarkdownDocuments
-            .FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
-
-        if (document == null)
-        {
-            return NotFound();
-        }
-
-        context.MarkdownDocuments.Remove(document);
-        await context.SaveChangesAsync();
-
-        logger.LogInformation("Document with ID: '{Id}' was deleted by user: '{UserId}'.", id, userId);
-
-        return RedirectToAction(nameof(History));
-    }
-}
-```
-
 通过合理地使用 Entity Framework Core，你可以轻松地操作数据库中的数据，而不必担心手动编写 SQL 语句，也不必担心数据库结构与实体类不一致的问题。
 
 在上面的过程中，我们巧妙的将创建和编辑共享了同一个视图，这样可以减少代码重复，提高代码的可维护性。同时我们还对于匿名用户和已经认证的用户做了不同处理，确保匿名用户可以匿名使用，而认证用户则可以享受更多的功能。
@@ -2070,6 +1895,70 @@ public class HomeController(
 
 # Aiursoft Template Tutorial - Step 9 - 允许用户在前端上传文件
 
-# Aiursoft Template Tutorial - Step 10 - 本地化应用以面向全球用户
+# Aiursoft Template Tutorial - Step 10 - 软删除和回收站，使用后台任务
 
-# Aiursoft Template Tutorial - Step 11 - 发布应用到真实的服务器
+# Aiursoft Template Tutorial - Step 11 - 本地化应用以面向全球用户
+
+# Aiursoft Template Tutorial - Step 12 - 发布应用到真实的服务器
+
+# Aiursoft Template Tutorial - Step 13 - 课后练习
+
+这部分留给你自己完成。你可以尝试添加更多的功能。到这里以后，相信完成下面的功能对你来说已经不再是难事了。
+
+这些功能不仅能极大地丰富你的应用，还能让你在实践中深入掌握更多关于数据库设计、后端架构、前端交互和性能优化的专业知识。祝你玩得开心！
+
+## Step 12.1 Markdown 支持多种隐私选项
+
+现在，Markdown 保存好了以后只能自己看。我们可以尝试添加更多的隐私选项，例如：
+
+* 公开：任何人都可以查看这个文档。
+* 私密：只有自己可以查看这个文档。
+* 不出现在列表中：只有知道链接的人才能查看这个文档。
+* 密码保护：访问这个文档需要输入密码。
+* 分享给特定的用户组：只有特定的用户组可以查看这个文档。
+
+## Step 12.2 支持其它格式
+
+除了 Markdown，我们还可以支持更多的格式，例如：
+
+* Mermaid：一种用于绘制图表和流程图的文本格式。
+* LaTeX：一种用于排版数学公式和科学文档的标记语言。
+* HTML：直接输入 HTML 代码，并渲染成网页。
+* 富文本格式（WYSIWYG）：允许用户使用类似 Word 的编辑器来创建和编辑文档。
+
+## Step 12.3 搜索
+
+我们可以尝试实现搜索功能，允许用户根据标题或内容搜索他们的文档。可以使用全文索引或者简单的字符串匹配来实现这个功能。甚至可以支持模糊搜索和高级搜索选项。
+
+## Step 12.4 文档版本历史与回滚
+
+用户在编辑文档时，可能会误删重要内容或想找回之前的某个版本。实现一个版本控制系统，让每一次保存都成为一个可追溯的历史记录。
+
+这需要妥善的设计数据结构，例如：
+
+* 可以每次提交都完整的保存一份文档的快照，这样方便实现，并且可以支持任意版本的回滚。但缺点是会占用较多的存储空间。
+* 也可以只保存每次修改的差异（diff），这样节省存储空间，但实现起来相对复杂一些。
+
+## Step 12.5 高级组织：文件夹与标签系统
+
+当文档数量增多时，一个扁平的列表将变得难以管理。引入文件夹和标签来帮助用户组织他们的文档。
+
+这需要妥善设计数据库结构，例如：
+
+* 文件夹表：存储文件夹信息，如名称、创建时间、用户ID等。
+* 标签表：存储标签信息，如名称、颜色等。
+* 文档-标签关联表：实现多对多关系，允许一个文档有多个标签。
+* 文档-文件夹关联：允许一个文档属于一个文件夹。
+* 用户-文件夹关联：允许用户创建和管理自己的根文件夹。
+
+## Step 12.6 性能优化：分页加载
+
+如果一个用户有成百上千篇文档，“我的文档”页面一次性加载所有文档会导致页面加载缓慢，并给服务器和数据库带来压力。通过分页加载，只加载当前页的文档，提升用户体验。
+
+这需要为列表页面增加两个参数 `page` 和 `pageSize`，并在数据库查询时使用 `Skip` 和 `Take` 方法来实现分页。它们会被翻译成 SQL 语句中的 `OFFSET` 和 `LIMIT`，从而只查询需要的数据。
+
+## Step 12.7 支持 PostgreSQL
+
+我们已经支持了 SQLite 和 MySQL，现在可以尝试添加对 PostgreSQL 的支持。PostgreSQL 是一个功能强大且广泛使用的开源关系型数据库管理系统。通过添加对 PostgreSQL 的支持，可以让应用程序适应更多的部署环境和用户需求。
+
+Aiursoft Template 的设计中，不需要修改任何核心代码，就可以轻松地添加对新的数据库的支持。你只需要模仿 MySql、Sqlite 的实现，创建一个新的 PostgreSql 支持类，并确保在配置文件中正确设置连接字符串和数据库类型即可。
