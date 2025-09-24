@@ -23,11 +23,3 @@ We strongly suggest getting started by following our [Quick tutorial](./Tutorial
 Content:
 
 * [Step 1 - Creating the new project](./Tutorial/step1.md)
-* [Step 2 - Add third party library](./Tutorial/step2.md)
-* [Step 3 - Add a new view](./Tutorial/step3.md)
-* [Step 4 - Publish the app](./Tutorial/step4.md)
-* [Step 5 - Add a new model](./Tutorial/step5.md)
-* [Step 6 - Save data to database](./Tutorial/step6.md)
-* [Step 7 - Setup configuration](./Tutorial/step7.md)
-* [Step 8 - Localize the app](./Tutorial/step8.md)
-* [Step 9 - Deploy to production](./Tutorial/step9.md)
