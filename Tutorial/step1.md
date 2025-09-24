@@ -843,7 +843,7 @@ public class HomeController(
             const themeToggleButton = document.querySelector('.js-theme-toggle');
             const markdownForm = document.getElementById('markdown-form');
             if (themeToggleButton && markdownForm) {
-                themeToggleButton.addEventListener('click', function (event) {
+                themeToggleButton.addEventListener('click', function () {
                     // Submit the form after switching theme to refresh CodeMirror themes
                     setTimeout(() => {
                         markdownForm.submit();
@@ -1889,13 +1889,15 @@ public class DeleteViewModel : UiStackLayoutViewModel
 
 # Aiursoft Template Tutorial - Step 6 - 管理员看板和全新的权限
 
+作为站长，你可能希望有一个专门的管理员看板，用于管理用户和内容。你也可能希望有一些特殊的权限设置，例如调整一篇文档的所有者，或者让某些用户拥有更高的权限。我们将在这一步中实现这些功能。
+
 # Aiursoft Template Tutorial - Step 7 - 增加全新的配置项目，并支持环境变量
 
 # Aiursoft Template Tutorial - Step 8 - 添加自定义验证
 
 # Aiursoft Template Tutorial - Step 9 - 允许用户在前端上传文件
 
-# Aiursoft Template Tutorial - Step 10 - 软删除和回收站，使用后台任务
+# Aiursoft Template Tutorial - Step 10 - 软删除和回收站，基于后台任务
 
 # Aiursoft Template Tutorial - Step 11 - 本地化应用以面向全球用户
 
