@@ -10,9 +10,9 @@
 
 ## Step 1.1 准备开发环境
 
-第一步的目标是创建一个全新的项目。我们推荐你使用 [AnduinOS](https://www.anduinos.com) 来进行实战开发，因为 AnduinOS 非常容易安装 dotnet、bash、npm、git、docker、mysql、nginx 等工具。
+第一步的目标是创建一个全新的项目。我们推荐你使用 [AnduinOS](https://www.anduinos.com) 1.3 或更高版本来进行实战开发，因为 AnduinOS 1.3+ 非常容易安装 dotnet、bash、npm、git、docker、mysql、nginx 等工具。
 
-如果你不想使用 AnduinOS，你也可以在任何支持 .NET 8.0 的操作系统上进行开发。
+如果你不想使用 AnduinOS，你也可以在任何支持 .NET 8.0 的操作系统上进行开发，例如 Windows、macOS 或其他 Linux 发行版。
 
 在开始之前，请确保你已经安装了 `git`、`.NET 9.0 SDK` 和 `docker`。在 AnduinOS 上，你可以使用以下命令安装这些工具：
 
@@ -420,6 +420,18 @@ public class MarkToHtmlService(MarkdownPipeline pipeline, HtmlSanitizer sanitize
 
 注意，在这里我们给服务实现了接口: `ITransientDependency`。这表示这个服务是瞬态的，每次请求都会创建一个新的实例。Aiursoft Scanner 会自动将实现了这个接口的类注册到依赖注入容器中，无需修改 `Startup.cs` 文件。
 
+同样的，我们在构造方法中索要了 `MarkdownPipeline` 和 `HtmlSanitizer` 的实例。因为我们在 `Startup.cs` 文件中已经将它们注册为单例，所以这里会自动注入同一个实例。
+
+务必牢记：
+
+> Singleton 的服务在整个应用生命周期内只会创建一个实例，适用于无状态且线程安全的服务。它只能依赖其它 Singleton 的服务。不可以依赖 Scoped 或 Transient 的服务。
+> Scoped 的服务在每个请求的生命周期内创建一个实例，适用于需要在请求间保持状态的服务。它可以依赖 Singleton 和 Scoped 的服务。不可以依赖 Transient 的服务。
+> Transient 的服务每次请求都会创建一个新的实例，适用于轻量级且无状态的服务。它可以依赖任何类型的服务，包括 Singleton、Scoped 和 Transient。
+
+打破上面的规则，应用仍然可以编译，甚至某些情况下可能可以运行；但容易产生非常诡异的生命周期问题，导致难以调试的 bug。
+
+因此，在这里我们将 `MarkdownPipeline` 和 `HtmlSanitizer` 注册为 Singleton，因为它们是黑盒，又线程安全，还可以反复使用也就是无状态的。而 `MarkToHtmlService` 则注册为 Transient，因为构造它开销较小且无状态。
+
 ## Step 3.3 修改 ViewModel
 
 为了让前端页面能够与后端服务进行交互，我们需要一个 ViewModel。ViewModel 是一种设计模式，用于将数据从控制器传递到视图。
@@ -440,7 +452,6 @@ public class IndexViewModel : UiStackLayoutViewModel
     }
 
     [Required]
-    [Display(Name = "Markdown Input")]
     public string InputMarkdown { get; set; } = """
                                                 # Hello world!
 
@@ -456,10 +467,11 @@ public class IndexViewModel : UiStackLayoutViewModel
 
                                                 """;
 
-    [Display(Name = "HTML Output")]
     public string OutputHtml { get; set; } = string.Empty;
 }
 ```
+
+注意，这里的 `[Required]` 特性表示 `InputMarkdown` 属性是必填的。如果用户没有输入任何内容，表单提交时会显示一个错误消息。如果用户强制通过 HTTP Post 提交，则服务器端的 `ModelState.IsValid` 会返回 false。
 
 ## Step 3.4 修改 Controller
 
@@ -474,7 +486,28 @@ public class HomeController(
     MarkToHtmlService mtohService) : Controller
 ```
 
-然后，修改 `Index` 方法，添加对 markdown 转换的处理：
+然后增加一个新的 `Index` 方法来处理 POST 请求，将输入的 markdown 转换为 HTML：
+
+```csharp
+[HttpPost]
+[ValidateAntiForgeryToken]
+public IActionResult Index(IndexViewModel model)
+{
+    // If the model state is invalid, return the view with the current model to show validation errors
+    if (!ModelState.IsValid)
+    {
+        return this.StackView(model);
+    }
+
+    // Convert the input markdown to HTML using the MarkToHtmlService
+    model.OutputHtml = mtohService.ConvertMarkdownToHtml(model.InputMarkdown);
+    return this.StackView(model);
+}
+```
+
+其中，`[HttpPost]` 特性表示这个方法只处理 POST 请求，`[ValidateAntiForgeryToken]` 特性用于防止跨站请求伪造 (CSRF) 攻击。ASP.NET Core 的表单在提交时会自动包含一个防伪令牌，服务器端会验证这个令牌以确保请求的合法性。
+
+此时，我们的 `HomeController.cs` 文件应该类似于下面这样：
 
 ```csharp
 using MyOrg.MarkToHtml.Models.HomeViewModels;
@@ -521,7 +554,7 @@ public class HomeController(
 
 显然，视图的职责是绘制一个好看的页面，让用户能够输入 markdown 并预览生成的 HTML。
 
-在我们编写视图的时候，只需要尊重 ViewModel 的属性即可。视图文件位于 `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml`。
+在我们编写视图的时候，只需要尊重 ViewModel 的属性即可。视图文件位于 `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml`。在默认情况下，它可能包含了一些示例内容。可以放心的直接删除，然后进行修改。
 
 将其修改为以下内容：
 
@@ -621,6 +654,14 @@ public class HomeController(
     </div>
 </form>
 ```
+
+在上面的例子中，我们使用了大量 Razor 的技巧来动态生成 HTML 页面。
+
+例如：`@* Something *@` 用于添加注释；`@model` 用于指定视图使用的 ViewModel 类型，从而可以通过 `@Model.Something` 来访问 ViewModel，`@inject` 用于注入服务，`@Localizer["Some Text"]` 用于本地化字符串，`@Html.Raw(Model.OutputHtml)` 用于渲染未经编码的 HTML 内容。
+
+当然，你也可以继续使用熟悉的 C# 语法来动态渲染，例如 `@if`、`@for`、`@foreach` 等等。这种技巧可以让你轻松地将服务器端的数据渲染到客户端页面。但注意：它会在服务器端执行，将 C# 变量的值插入到生成的 HTML 中，再将其发送到客户端执行。相当于是使用 C# 在动态拼接 HTML，这种技巧叫作“服务器端渲染”，其优先级高于 JavaScript，可以在没有 JavaScript 的情况下运行；但缺点是无法在前端动态改变，并且会占用服务器的算力。
+
+在后面的例子中，我们将大量使用这种技巧来渲染页面。
 
 ## Step 3.6 添加必要的样式和脚本
 
@@ -722,7 +763,13 @@ public class HomeController(
 
 这样，我们就引入了 CodeMirror 的样式，并添加了一些自定义的样式来美化页面。
 
+> 上面的 `@section styles` 是模板文件中预定义的一个部分，用于插入页面特定的样式。你可以在这里添加任何你需要的 CSS 样式。它会渲染在页面的 `<head>` 标签内。除了可以使用内联样式，你也可以使用 `<link>` 标签来引入外部样式表。
+
 其中注意：使用 @大括号 ，也就是 `@{ }` 包起来的代码是 C# 代码块，其在服务器端执行。而使用 @@ 符号来转义 @ 符号，以便在 CSS 中使用。在这里，我们得到了一个服务器端变量 `theme`，它根据用户的主题偏好动态设置 CodeMirror 的主题。
+
+在上面，为了确保编辑器控件和预览区域不会太高，我们将它们的最大高度设置为 70vh（视口高度的 70%）。这样可以确保它们在大多数屏幕上都能良好显示。
+
+上面，为了方便打印，我们使用了大量 CSS 技巧，以确保打印出来的内容美观且易读。同时也使用了 `#printable-area` 这个 ID 来指定打印区域。
 
 显然，我们还需要一些 Javascript 代码来初始化 CodeMirror 编辑器，并处理复制按钮和打印按钮的功能。
 
@@ -832,6 +879,10 @@ public class HomeController(
 }
 ```
 
+> 类似的，`@section scripts` 也是模板文件中预定义的一个部分，用于插入页面特定的脚本。你可以在这里添加任何你需要的 JavaScript 代码。它会出现在页面的底部。除了可以使用内联脚本，你也可以使用 `<script>` 标签来引入外部脚本文件。
+
+> 在上面的代码中，我们使用了技巧 `@(theme)` 来动态设置 CodeMirror 的主题，以匹配用户的主题偏好。这是 Razor 的功能，它会在服务器端执行，将 C# 变量的值插入到生成的 HTML 中，再将其发送到客户端执行。参考上面提到的“服务器端渲染”技巧。
+
 这样，我们的 jQuery Validation、CodeMirror 初始化、复制按钮、切换主题时自动刷新、更漂亮的表格样式、打印按钮等功能都实现了。
 
 现在，你可以保存所有更改，重新编译并运行项目：
@@ -850,16 +901,18 @@ dotnet run
 
 Aiursoft Template 提供了强大的基础设施，让你能够专注于业务逻辑的实现，而不必担心底层的细节。开发一个简单的应用从未如此简单和高效！
 
-# Aiursoft Template Tutorial - Step 4 - 在 Docker 里运行和发布应用
+# Aiursoft Template Tutorial - Step 4 - 添加全新的数据模型并改变数据库结构
 
-# Aiursoft Template Tutorial - Step 5 - 添加全新的数据模型并改变数据库结构
+# Aiursoft Template Tutorial - Step 5 - 将数据保存到数据库
 
-# Aiursoft Template Tutorial - Step 6 - 将数据保存到数据库
+# Aiursoft Template Tutorial - Step 6 - 管理员看板和全新的权限
 
-# Aiursoft Template Tutorial - Step 7 - 管理员看板和全新的权限
+# Aiursoft Template Tutorial - Step 7 - 增加全新的配置项目，并支持环境变量
 
-# Aiursoft Template Tutorial - Step 8 - 增加全新的配置项目，并支持环境变量
+# Aiursoft Template Tutorial - Step 8 - 添加自定义验证
 
-# Aiursoft Template Tutorial - Step 9 - 本地化应用以面向全球用户
+# Aiursoft Template Tutorial - Step 9 - 允许用户在前端上传文件
 
-# Aiursoft Template Tutorial - Step 10 - 发布应用到真实的服务器
+# Aiursoft Template Tutorial - Step 10 - 本地化应用以面向全球用户
+
+# Aiursoft Template Tutorial - Step 11 - 发布应用到真实的服务器

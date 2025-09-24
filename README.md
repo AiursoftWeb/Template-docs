@@ -6,6 +6,7 @@
 * **OpenID Connect Integration:** Seamlessly integrate with any OpenID Connect provider, with automatic role synchronization.
 * **RBAC Authorization:** A built-in Role-Based Access Control (RBAC) system for fine-grained permission management.
 * **Dynamic Navigation Bar:** The navigation bar automatically adjusts based on user roles and permissions.
+* **Consistency validation:** Models are validated on both client and server sides based on data annotations.
 * **AI-Powered Translations:** Automatic, AI-driven translation into 28 languages.
 * **Comprehensive Documentation:** Includes extensive documentation and practical examples to get you started quickly.
 * **Built-in User Management:** A complete solution for user authentication and profile management.
