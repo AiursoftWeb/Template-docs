@@ -1891,7 +1891,19 @@ public class DeleteViewModel : UiStackLayoutViewModel
 
 # Aiursoft Template Tutorial - Step 7 - 增加全新的配置项目，并支持环境变量
 
+作为站长，有一些应用的配置可能默认配置并不能满足。我们需要允许管理员自己可以调整一些配置项目，来改变应用的默认行为，例如：
+
+* 允许或禁止注册新用户。
+* 允许或禁止匿名用户使用应用。
+* 允许或禁止用户删除自己的内容。
+
 # Aiursoft Template Tutorial - Step 8 - 添加自定义验证
+
+ASP.NET Core 提供了丰富的验证功能，并且将验证的结果自动绑定到了 `ModelState` 中。我们可以利用这些功能来确保用户输入的数据是合法的。在之前的步骤中，我们已经充分利用了这些功能。
+
+但有的时候，我们需要开发我们自己自定义的验证逻辑，例如：
+
+* 验证用户输入的内容是否包含敏感词。
 
 # Aiursoft Template Tutorial - Step 9 - 允许用户在前端上传文件
 
