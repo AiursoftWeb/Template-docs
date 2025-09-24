@@ -14,3 +14,19 @@
 * **Responsive Design:** A fully responsive layout that looks great on both desktop and mobile devices.
 * **Automatic Dark Mode:** Smart dark mode that adapts to the user's system settings.
 * **Dockerized for Easy Deployment:** Comes with Docker support for simplified and consistent deployments.
+
+## Getting Started
+
+We strongly suggest getting started by following our [Quick tutorial](./tutorial/step1.md) to set up a basic project.
+
+Content:
+
+* [Step 1 - Creating the new project](./tutorial/step1.md)
+* [Step 2 - Add third party library](./tutorial/step2.md)
+* [Step 3 - Add a new view](./tutorial/step3.md)
+* [Step 4 - Publish the app](./tutorial/step4.md)
+* [Step 5 - Add a new model](./tutorial/step5.md)
+* [Step 6 - Save data to database](./tutorial/step6.md)
+* [Step 7 - Setup configuration](./tutorial/step7.md)
+* [Step 8 - Localize the app](./tutorial/step8.md)
+* [Step 9 - Deploy to production](./tutorial/step9.md)
