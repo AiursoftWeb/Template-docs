@@ -903,6 +903,185 @@ Aiursoft Template 提供了强大的基础设施，让你能够专注于业务�
 
 # Aiursoft Template Tutorial - Step 4 - 添加全新的数据模型并改变数据库结构
 
+我们可以扩展上面的例子，允许用户保存他们的 markdown 文档，并在之后重新编辑甚至分享它们。为此，我们需要添加一个新的数据模型，并改变数据库结构。
+
+在改变数据库结构之前，我们需要先了解一下 Aiursoft Template 使用的数据库 ORM 工具：Entity Framework Core (EF Core)。
+
+## Step 4.1 理解 Entity Framework Core (EF Core)
+
+如果你非常熟悉 Entity Framework Core，可以跳过这一步。
+
+Entity Framework Core (EF Core) 是一个强大的对象关系映射 (ORM) 工具，允许你使用 .NET 对象来操作数据库，而不必直接编写 SQL 语句。它支持多种数据库，包括 SQLite、MySQL、SQL Server、PostgreSQL 等等。
+
+例如，它的语法类似：
+
+```csharp
+var books = await dbContext.Books
+    .Where(b => b.Author == "Anduin Xue")
+    .OrderBy(b => b.PublishedDate)
+    .Skip(10)
+    .Take(10)
+    .ToListAsync();
+```
+
+这将会从数据库的 `Books` 表中查询作者为 "Anduin Xue" 的书籍，按发布日期排序，跳过前 10 条记录，取接下来的 10 条记录，并将结果转换为一个列表。其 SQL 可能类似：
+
+```sql
+SELECT * FROM Books
+WHERE Author = 'Anduin Xue'
+ORDER BY PublishedDate
+LIMIT 10 OFFSET 10;
+```
+
+但是，考虑到我们可能会修改一些实体类的结构，例如增加新的属性，删除旧的属性，或者修改属性的类型。为了让数据库结构与实体类保持同步，我们需要使用 EF Core 的迁移 (Migration) 功能。
+
+在这个例子里，我们将新建一个表，叫做 `MarkdownDocuments`，用于存储用户的 markdown 文档。但真实的数据库里并不存在这个表。因此，我们需要创建一个迁移来告诉 EF Core 如何创建这个表。迁移包含了数据库结构的变更信息。程序在启动的时候，会自动比较数据库本身的表结构的版本和最新的迁移版本，并自动运行差异的迁移。这样就能确保数据库结构与实体类保持同步。
+
+如果忘记了创建迁移，或迁移没有成功运行，程序会仍然能运行，但执行的 SQL 可能无法正确在数据库里完成预期的操作，导致程序运行时出现异常。因此，每次修改了实体类后，都应该创建一个新的迁移。
+
+## Step 4.2 创建新的数据模型
+
+接下来，我们准备使用 Entity Framework Core 来创建一个新的数据模型，叫做 `MarkdownDocument`，用于存储用户的 markdown 文档。
+
+为了创建这个数据模型，我们直接修改 `./src/MyOrg.MarkToHtml/Entities/User.cs` 文件：
+
+添加必要的 using 语句：
+
+```csharp
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
+```
+
+添加一个新的类 `MarkdownDocuments`，表示用户拥有的所有 markdown 文档。
+
+```csharp
+public class MarkdownDocument
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    [MaxLength(100)]
+    public string? Title { get; set; }
+
+    [MaxLength(65535)]
+    public string? Content { get; set; }
+
+    public DateTime CreationTime { get; init; } = DateTime.UtcNow;
+
+    [StringLength(64)]
+    public required string UserId { get; set; }
+
+    [ForeignKey(nameof(UserId))]
+    [NotNull]
+    public User? User { get; set; }
+}
+```
+
+在上面的例子中，我们的类 `MarkdownDocument` 包含了以下属性：
+
+* `Id`：文档的唯一标识符，使用 GUID 类型。
+* `Title`：文档的标题，最多 100 个字符。
+* `Content`：文档的内容，最多 65535 个字符。
+* `CreationTime`：文档的创建时间，使用 UTC 时间。
+* `UserId`：文档所属用户的 ID，使用字符串类型，长度为 64 个字符。
+* `User`：导航属性，表示文档所属的用户。其中 `UserId` 是外键，引用了 `User` 实体的主键。
+
+> 关系型数据库的表之间通常通过外键来建立关联。在上面的例子中，`MarkdownDocument` 实体通过 `UserId` 属性与 `User` 实体建立了多对一的关系。也就是说，一个用户可以拥有多个文档，而每个文档只能属于一个用户。
+
+在这里我们使用了一些硝基漆，例如 `[Key]`、`[MaxLength]`、`[StringLength]`、`[ForeignKey]` 等等。这些硝基漆用于告诉 Entity Framework Core 如何映射这个类到数据库表。而 `[NotNull]` 和 `[JsonIgnore]` 则用于告诉编译器和 JSON 序列化器如何处理这些属性。
+
+同时，我们编辑上面的 User 类，增加属性：
+
+```csharp
+[JsonIgnore]
+[InverseProperty(nameof(MarkdownDocument.User))]
+public IEnumerable<MarkdownDocument> CreatedDocuments { get; set; } = new List<MarkdownDocument>();
+```
+
+最终这个文件看起来可能像这样：
+
+```csharp
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity;
+
+namespace MyOrg.MarkToHtml.Entities;
+
+public class User : IdentityUser
+{
+    public const string DefaultAvatarPath = "Workspace/avatar/default-avatar.jpg";
+
+    [MaxLength(30)]
+    [MinLength(2)]
+    public required string DisplayName { get; set; }
+
+    [MaxLength(150)]
+    [MinLength(2)]
+    public string AvatarRelativePath { get; set; } = DefaultAvatarPath;
+
+    public DateTime CreationTime { get; init; } = DateTime.UtcNow;
+
+    [JsonIgnore]
+    [InverseProperty(nameof(MarkdownDocument.User))]
+    public IEnumerable<MarkdownDocument> CreatedDocuments { get; set; } = new List<MarkdownDocument>();
+}
+
+public class MarkdownDocument
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    [MaxLength(100)]
+    public string? Title { get; set; }
+
+    [MaxLength(65535)]
+    public string? Content { get; set; }
+
+    public DateTime CreationTime { get; init; } = DateTime.UtcNow;
+
+    [StringLength(64)]
+    public required string UserId { get; set; }
+
+    [ForeignKey(nameof(UserId))]
+    [NotNull]
+    public User? User { get; set; }
+}
+```
+
+这样，我们就完成了数据模型的创建。
+
+最后，为了显示的表明我们需要一个新表，编辑文件 `./src/MyOrg.MarkToHtml.Entities/MarkToHtmlDbContext.cs`，为 `TemplateDbContext` 添加以下属性：
+
+```csharp
+public DbSet<MarkdownDocument> MarkdownDocuments => Set<MarkdownDocument>();
+```
+
+最终这个文件看起来可能像这样：
+
+```csharp
+using Aiursoft.DbTools;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+
+namespace MyOrg.MarkToHtml.Entities;
+
+public abstract class TemplateDbContext(DbContextOptions options) : IdentityDbContext<User>(options), ICanMigrate
+{
+    public virtual  Task MigrateAsync(CancellationToken cancellationToken) =>
+        Database.MigrateAsync(cancellationToken);
+
+    public virtual  Task<bool> CanConnectAsync() =>
+        Database.CanConnectAsync();
+
+    public DbSet<MarkdownDocument> MarkdownDocuments => Set<MarkdownDocument>();
+}
+```
+
+这样，我们就完成了数据模型的创建。
+
 # Aiursoft Template Tutorial - Step 5 - 将数据保存到数据库
 
 # Aiursoft Template Tutorial - Step 6 - 管理员看板和全新的权限
