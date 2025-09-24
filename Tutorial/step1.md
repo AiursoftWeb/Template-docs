@@ -856,8 +856,10 @@ Aiursoft Template 提供了强大的基础设施，让你能够专注于业务�
 
 # Aiursoft Template Tutorial - Step 6 - 将数据保存到数据库
 
-# Aiursoft Template Tutorial - Step 7 - 增加全新的配置项目
+# Aiursoft Template Tutorial - Step 7 - 管理员看板和全新的权限
 
-# Aiursoft Template Tutorial - Step 8 - 本地化应用
+# Aiursoft Template Tutorial - Step 8 - 增加全新的配置项目，并支持环境变量
 
-# Aiursoft Template Tutorial - Step 9 - 发布应用到真实的服务器
+# Aiursoft Template Tutorial - Step 9 - 本地化应用以面向全球用户
+
+# Aiursoft Template Tutorial - Step 10 - 发布应用到真实的服务器
