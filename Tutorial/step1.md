@@ -173,13 +173,18 @@ dotnet run
 
 默认情况下，应用会使用 SQLite 作为数据库。这是配置在 `appsettings.json` 文件中的。如果你想使用其他数据库（如 MySQL 或 SQL Server），你需要修改 `appsettings.json` 文件中的连接字符串。在默认情况下，第一次启动会自动创建并播种数据库，您会注意到 `app.db` 文件被创建在 `src/MyOrg.MarkToHtml/` 目录下。
 
-我们推荐你使用 [DbBrowser for SQLite](https://flathub.org/en/apps/org.sqlitebrowser.sqlitebrowser) 来查看和管理 SQLite 数据库，也就是 `app.db` 文件。删除这个文件即可将应用重置为初始状态。
+我们推荐你使用 [DbBrowser for SQLite](https://flathub.org/en/apps/org.sqlitebrowser.sqlitebrowser) 来查看和管理 SQLite 数据库，也就是 `app.db` 文件。删除这个文件即可将应用的数据重置为初始状态。
 
-默认情况下，应用会使用 `/tmp/data` 作为文件系统的后端存储路径。你可以在 `appsettings.json` 文件中修改这个路径。在默认情况下，这里可能会存放着默认的头像。
+## Step 1.5 配置项目使用的文件存储 (可选)
+
+默认情况下，应用会使用 `/tmp/data` 作为文件系统的后端存储路径。在 Docker 中，会默认使用 `/data` 作为存储路径。
+
+你可以在 `appsettings.json` 文件中修改这个路径。在默认情况下，这里可能会存放着默认的头像。
+
+删除这个文件夹即可将应用的文件存储重置为初始状态。
 
 ## 结语
 
 恭喜你完成了第一步！你现在已经配置好了开发环境，初始化了 git 仓库，并成功运行了一个基本的 Aiursoft Template 项目，也理解了它使用的文件结构、Sqlite 数据库和文件存储。
 
 接下来，我们将继续开发这个项目，添加更多功能。
-

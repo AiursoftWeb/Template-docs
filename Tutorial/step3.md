@@ -361,6 +361,14 @@ public class HomeController(
                 padding: 1.2cm;
             }
 
+            #printable-area pre,
+            #printable-area code {
+                white-space: pre-wrap !important;
+                overflow-wrap: break-word;
+                word-wrap: break-word;
+                color: #222 !important;
+            }
+
             #printable-area {
                 font-family: Georgia, "Times New Roman", serif;
                 font-size: 12pt;
