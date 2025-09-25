@@ -205,10 +205,9 @@ public class HomeController(
 @using MyOrg.MarkToHtml.Controllers
 @model MyOrg.MarkToHtml.Models.HomeViewModels.IndexViewModel
 
-@* Page Header *@
 <div class="row mb-2 mb-xl-3">
     <div class="col-auto d-none d-sm-block">
-        <h3>@ViewData["Title"]</h3>
+        <h3>@Localizer["Markdown to HTML Converter"]</h3>
     </div>
     <div class="col-auto ms-auto text-end mt-n1">
         <p class="mb-0 text-muted">@Localizer["A simple tool to convert your Markdown into clean, sanitized HTML."]</p>
