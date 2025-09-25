@@ -212,6 +212,7 @@ public class EditDocumentViewModel : UiStackLayoutViewModel
     [MaxLength(100)]
     public string? Title { get; set; }
 
+    [Required]
     [MaxLength(65535)]
     [Display(Name = "Markdown Content")]
     public string InputMarkdown { get; set; } = string.Empty;
