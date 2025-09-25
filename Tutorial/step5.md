@@ -1,5 +1,7 @@
 # Aiursoft Template Tutorial - Step 5 - 将数据保存到数据库
 
+![history-page](./assets/history-page.png)
+
 接下来，我们将继续扩展上面的例子，允许用户保存他们的 markdown 文档，并在之后重新编辑甚至分享它们。为此，我们需要修改控制器和视图，以便用户可以创建、查看、编辑和删除他们的文档。
 
 ## Step 5.1 保存并更新用户的文档

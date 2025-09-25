@@ -1,6 +1,8 @@
 
 # Aiursoft Template Tutorial - Step 4 - 添加全新的数据模型并改变数据库结构
 
+![db-browser](./assets/db-browser.png)
+
 我们可以扩展上面的例子，允许用户保存他们的 markdown 文档，并在之后重新编辑甚至分享它们。为此，我们需要添加一个新的数据模型，并改变数据库结构。
 
 在改变数据库结构之前，我们需要先了解一下 Aiursoft Template 使用的数据库 ORM 工具：[Entity Framework Core (EF Core)](https://learn.microsoft.com/en-us/ef/core/)。

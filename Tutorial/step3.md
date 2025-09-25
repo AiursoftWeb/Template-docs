@@ -1,5 +1,7 @@
 # Aiursoft Template Tutorial - Step 3 - 添加全新的页面
 
+![home-convert](./assets/home-convert.png)
+
 在上一步，我们成功地添加了将 markdown 转换为 HTML 的功能。接下来，我们需要创建一个前端页面，让用户能够输入 markdown 并预览生成的 HTML。
 
 ## Step 3.1 修改将必要的服务添加到依赖注入容器中

@@ -1,5 +1,7 @@
 # Aiursoft Template Tutorial - Step 2 - 添加和调试第三方库
 
+![rider-verify](./assets/rider-verify.png)
+
 ## Step 2.1 添加第三方库
 
 显然，我们本来的任务是创建一个将 markdown 转换为 HTML 的应用。为此，我们需要一个能够将 markdown 转换为 HTML 的库。

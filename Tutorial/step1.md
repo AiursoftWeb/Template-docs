@@ -1,5 +1,7 @@
 # Aiursoft Template Tutorial - Step 1 - 创建新项目
 
+![preview-new-project](./assets/new-login.png)
+
 ## Step 1.1 准备开发环境
 
 第一步的目标是创建一个全新的项目。我们推荐你使用 [AnduinOS](https://www.anduinos.com) 1.3 或更高版本来进行实战开发，因为 AnduinOS 1.3+ 非常容易安装 dotnet、bash、npm、git、docker、mysql、nginx 等工具。
@@ -178,8 +180,4 @@ dotnet run
 恭喜你完成了第一步！你现在已经配置好了开发环境，初始化了 git 仓库，并成功运行了一个基本的 Aiursoft Template 项目，也理解了它使用的文件结构、Sqlite 数据库和文件存储。
 
 接下来，我们将继续开发这个项目，添加更多功能。
-
-
-
-
 
