@@ -185,6 +185,40 @@ public class HomeController(
 }
 ```
 
+!!! tip "[RenderInNavBar] 的高级技巧"
+
+    `[RenderInNavBar]` 属性有很多参数，可以帮助你更好地组织导航栏。
+
+    它有三重等级，第一级是始终展开的，多个标签的组，称作 `NavGroup`。
+    
+    第二级是可以折叠的，多个标签的组，称作 `CascadedLinksGroup`。它也具有图标。
+    
+    第三级是具体的链接，称作 `Link`。
+
+    而 `Order` 则用于控制它们在同一级别中的排序。数字越小，排序越靠前。例如，我们将 `Roles` 放在了 `Administration` 组下的 `Directory` 组中，并且将它的顺序设置为 `2`，这样它就会排在 `Users` 的后面。
+
+    ```csharp
+    // Users management
+    [RenderInNavBar(
+    NavGroupName = "Administration",
+    NavGroupOrder = 9999,
+    CascadedLinksGroupName = "Directory",
+    CascadedLinksIcon = "users",
+    CascadedLinksOrder = 9998,
+    LinkText = "Users",
+    LinkOrder = 1)]
+
+    // Roles management
+    [RenderInNavBar(
+    NavGroupName = "Administration",
+    NavGroupOrder = 9999,
+    CascadedLinksGroupName = "Directory",
+    CascadedLinksIcon = "users",
+    CascadedLinksOrder = 9998,
+    LinkText = "Roles",
+    LinkOrder = 2)]
+    ```
+
 ## Step 3.5 修改视图
 
 视图 (View) 是 MVC 模式中的 V，负责渲染用户界面。在我们的结构中，视图使用 Razor 语法来生成 HTML 页面。
