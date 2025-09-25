@@ -6,7 +6,7 @@
 
 第一步的目标是创建一个全新的项目。我们推荐你使用 [AnduinOS](https://www.anduinos.com) 1.3 或更高版本来进行实战开发，因为 AnduinOS 1.3+ 非常容易安装 dotnet、bash、npm、git、docker、mysql、nginx 等工具。
 
-!!! question "Aiursoft Template 可以在什么操作系统上运行？"
+!!! tip "Aiursoft Template 可以在几乎所有主流操作系统上运行"
 
     如果你不想使用 AnduinOS，你也可以在任何支持 .NET 9.0 的操作系统上进行开发，例如 Windows、macOS 或其他 Linux 发行版。
 
