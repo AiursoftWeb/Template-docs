@@ -79,7 +79,7 @@ voyager --version
 
 首先，创建一个新的文件夹来存放你的项目：
 
-```bash
+```bash title="创建项目文件夹"
 mkdir MyOrg.MarkToHtml
 cd MyOrg.MarkToHtml
 ```
@@ -211,7 +211,7 @@ dotnet add package HtmlSanitizer
 
 你会注意到，在上面的命令执行完成后，`MyOrg.MarkToHtml.csproj` 文件中添加了对 Markdig 和 HtmlSanitizer 的引用，它看起来可能像这样：
 
-```xml
+```xml title="MyOrg.MarkToHtml.csproj"
 <ItemGroup>
     <PackageReference Include="HtmlSanitizer" Version="9.0.886" />
     <PackageReference Include="Markdig" Version="0.42.0" />
@@ -226,7 +226,7 @@ dotnet add package HtmlSanitizer
 
 接下来，我们需要先测试一下 Markdig 和 HtmlSanitizer 是否能正常工作。为此，我们直接修改 `./src/MyOrg.MarkToHtml/Program.cs` 文件，将 `Main` 方法原有内容暂时注释，然后暂时添加用于测试 Markdig 的以下代码：
 
-```csharp
+```csharp title="测试 Markdig，Program.cs"
 using Aiursoft.DbTools;
 using MyOrg.MarkToHtml.Entities;
 using static Aiursoft.WebTools.Extends;
@@ -267,7 +267,7 @@ dotnet run
 
 可能会看到类似下面的输出：
 
-```html
+```html title="Markdig 输出"
 <h1 id="hello-world">Hello World</h1>
 <p>This is a sample markdown text.</p>
 <blockquote>
@@ -279,7 +279,7 @@ dotnet run
 
 我们可以修改 `Program.cs` 文件中的测试代码，添加对 HtmlSanitizer 的使用：
 
-```csharp
+```csharp title="测试 HtmlSanitizer，Program.cs"
 using Aiursoft.DbTools;
 using Ganss.Xss;
 using MyOrg.MarkToHtml.Entities;
@@ -309,7 +309,7 @@ public abstract class Program
 
 这次，预计输出将会是：
 
-```html
+```html title="HtmlSanitizer 输出"
 <div style="background-color: rgba(0, 0, 0, 1)">Test<img src="https://www.example.com/test.png" style="margin: 10px"></div>
 ```
 
@@ -319,7 +319,7 @@ public abstract class Program
 
 现在，我们测试完成了，回滚 `Program.cs` 文件中的更改，恢复原有内容：
 
-```csharp
+```csharp title="恢复 Program.cs"
 using Aiursoft.DbTools;
 using MyOrg.MarkToHtml.Entities;
 using static Aiursoft.WebTools.Extends;
@@ -345,14 +345,14 @@ public abstract class Program
 
 为了安装 CodeMirror 5，我们需要使用 npm 包管理器。你可以使用以下命令来安装它：
 
-```bash
+```bash title="安装 CodeMirror 5"
 cd ./src/MyOrg.MarkToHtml/wwwroot/
 npm install codemirror@5 --save
 ```
 
 你会注意到，在上面的命令执行完成后，`./src/MyOrg.MarkToHtml/wwwroot/package.json` 文件中添加了对 CodeMirror 的引用，它看起来可能像这样：
 
-```json
+```json title="package.json"
 {
   "name": "wwwroot",
   "version": "1.0.0",
@@ -381,14 +381,14 @@ ASP.NET Core 使用依赖注入来管理应用的服务。为了让 Markdig 和 
 
 首先，修改 `./src/MyOrg.MarkToHtml/Startup.cs` 文件，首先添加必要的 using 语句：
 
-```csharp
+```csharp title="添加 using 语句，Startup.cs"
 using Ganss.Xss;
 using Markdig;
 ```
 
 然后找到 `public void ConfigureServices(IConfiguration configuration, IWebHostEnvironment environment, IServiceCollection services)` 方法，添加下面的代码：
 
-```csharp
+```csharp title="配置依赖注入，Startup.cs"
 // Add the markdown pipeline and HTML sanitizer
 var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 services.AddSingleton(pipeline);
@@ -403,7 +403,7 @@ services.AddSingleton<HtmlSanitizer>();
 
 在这里新建一个名为 `MarkToHtmlService.cs` 的文件，并添加以下代码：
 
-```csharp
+```csharp title="MarkToHtmlService.cs"
 using Aiursoft.Scanner.Abstractions;
 using Ganss.Xss;
 using Markdig;
@@ -442,7 +442,7 @@ public class MarkToHtmlService(MarkdownPipeline pipeline, HtmlSanitizer sanitize
 
 在这里，为了简单，我们直接修改 `./src/MyOrg.MarkToHtml/Models/HomeViewModels/IndexViewModel.cs` 文件，添加一个新的属性 `MarkdownInput` 来存储用户输入的 markdown 内容，并将 `OutputHtml` 属性用于存储生成的 HTML 内容。
 
-```csharp
+```csharp title="IndexViewModel.cs"
 using System.ComponentModel.DataAnnotations;
 using Aiursoft.UiStack.Layout;
 
@@ -485,14 +485,14 @@ Controller，也叫控制器，是 MVC 模式中的 C，负责处理用户的请
 
 修改其构造函数，添加 `MarkToHtmlService` 的参数：
 
-```csharp
+```csharp title="修改 HomeController 构造函数"
 public class HomeController(
     MarkToHtmlService mtohService) : Controller
 ```
 
-然后增加一个新的 `Index` 方法来处理 POST 请求，将输入的 markdown 转换为 HTML：
+然后**增加**一个新的 `Index` 方法来处理 POST 请求，将输入的 markdown 转换为 HTML：
 
-```csharp
+```csharp title="添加 Index POST 方法"
 [HttpPost]
 [ValidateAntiForgeryToken]
 public IActionResult Index(IndexViewModel model)
@@ -517,7 +517,7 @@ public IActionResult Index(IndexViewModel model)
 
 此时，我们的 `HomeController.cs` 文件应该类似于下面这样：
 
-```csharp
+```csharp title="完整的 HomeController.cs"
 using MyOrg.MarkToHtml.Models.HomeViewModels;
 using MyOrg.MarkToHtml.Services;
 using Aiursoft.UiStack.Navigation;
@@ -566,7 +566,7 @@ public class HomeController(
 
 将其修改为以下内容：
 
-```html
+```html title="Index.cshtml"
 @using MyOrg.MarkToHtml.Controllers
 @model MyOrg.MarkToHtml.Models.HomeViewModels.IndexViewModel
 @inject IViewLocalizer Localizer
@@ -667,7 +667,7 @@ public class HomeController(
 
 例如：`@* Something *@` 用于添加注释；`@model` 用于指定视图使用的 ViewModel 类型，从而可以通过 `@Model.Something` 来访问 ViewModel，`@inject` 用于注入服务，`@Localizer["Some Text"]` 用于本地化字符串，`@Html.Raw(Model.OutputHtml)` 用于渲染未经编码的 HTML 内容。
 
-!!! example "Razor 语法中的 C# 代码块"
+!!! example "Razor 语法中的 C# 代码块 - 服务器端渲染"
 
     当然，你也可以继续使用熟悉的 C# 语法来动态渲染，例如 `@if`、`@for`、`@foreach` 等等。这种技巧可以让你轻松地将服务器端的数据渲染到客户端页面。但注意：它会在服务器端执行，将 C# 变量的值插入到生成的 HTML 中，再将其发送到客户端执行。相当于是使用 C# 在动态拼接 HTML，这种技巧叫作“服务器端渲染”，其优先级高于 JavaScript，可以在没有 JavaScript 的情况下运行；但缺点是无法在前端动态改变，并且会占用服务器的算力。
 
@@ -681,7 +681,7 @@ public class HomeController(
 
 在上面的视图文件的末尾，添加以下代码：
 
-```html
+```html title="为 Index.cshtml 添加样式"
 @{
     var isDarkMode = Context.Request.Cookies[ThemeController.ThemeCookieKey] == true.ToString();
     var theme = isDarkMode ? "material" : "eclipse";
@@ -773,7 +773,9 @@ public class HomeController(
 
 这样，我们就引入了 CodeMirror 的样式，并添加了一些自定义的样式来美化页面。
 
-> 上面的 `@section styles` 是模板文件中预定义的一个部分，用于插入页面特定的样式。你可以在这里添加任何你需要的 CSS 样式。它会渲染在页面的 `<head>` 标签内。除了可以使用内联样式，你也可以使用 `<link>` 标签来引入外部样式表。
+!!! note "Aiursoft Template 特有的样式插入方式"
+
+    上面的 `@section styles` 是模板文件中预定义的一个部分，用于插入页面特定的样式。你可以在这里添加任何你需要的 CSS 样式。它会渲染在页面的 `<head>` 标签内。除了可以使用内联样式，你也可以使用 `<link>` 标签来引入外部样式表。
 
 其中注意：使用 @大括号 ，也就是 `@{ }` 包起来的代码是 C# 代码块，其在服务器端执行。而使用 @@ 符号来转义 @ 符号，以便在 CSS 中使用。在这里，我们得到了一个服务器端变量 `theme`，它根据用户的主题偏好动态设置 CodeMirror 的主题。
 
@@ -785,7 +787,7 @@ public class HomeController(
 
 继续在上面的视图文件的末尾，添加以下代码：
 
-```html
+```html title="为 Index.cshtml 添加脚本"
 
 @* ReSharper disable once Razor.SectionNotResolved *@
 @section scripts {
@@ -890,7 +892,9 @@ public class HomeController(
 }
 ```
 
-> 类似的，`@section scripts` 也是模板文件中预定义的一个部分，用于插入页面特定的脚本。你可以在这里添加任何你需要的 JavaScript 代码。它会出现在页面的底部。除了可以使用内联脚本，你也可以使用 `<script>` 标签来引入外部脚本文件。
+!!! note "Aiursoft Template 特有的脚本插入方式"
+
+    类似的，`@section scripts` 也是模板文件中预定义的一个部分，用于插入页面特定的脚本。你可以在这里添加任何你需要的 JavaScript 代码。它会出现在页面的底部。除了可以使用内联脚本，你也可以使用 `<script>` 标签来引入外部脚本文件。
 
 > 在上面的代码中，我们使用了技巧 `@(theme)` 来动态设置 CodeMirror 的主题，以匹配用户的主题偏好。这是 Razor 的功能，它会在服务器端执行，将 C# 变量的值插入到生成的 HTML 中，再将其发送到客户端执行。参考上面提到的“服务器端渲染”技巧。
 
@@ -928,7 +932,7 @@ Aiursoft Template 提供了强大的基础设施，让你能够专注于业务�
 
 例如，它的语法类似：
 
-```csharp
+```csharp title="EF Core 查询示例"
 var books = await dbContext.Books
     .Where(b => b.Author == "Anduin Xue")
     .OrderBy(b => b.PublishedDate)
@@ -939,7 +943,7 @@ var books = await dbContext.Books
 
 这将会从数据库的 `Books` 表中查询作者为 "Anduin Xue" 的书籍，按发布日期排序，跳过前 10 条记录，取接下来的 10 条记录，并将结果转换为一个列表。其 SQL 可能类似：
 
-```sql
+```sql title="对应的 SQL 查询"
 SELECT * FROM Books
 WHERE Author = 'Anduin Xue'
 ORDER BY PublishedDate
@@ -962,7 +966,7 @@ LIMIT 10 OFFSET 10;
 
 添加必要的 using 语句：
 
-```csharp
+```csharp title="添加 using 语句，User.cs"
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
@@ -970,7 +974,7 @@ using Newtonsoft.Json;
 
 添加一个新的类 `MarkdownDocuments`，表示用户拥有的所有 markdown 文档。
 
-```csharp
+```csharp title="添加 MarkdownDocument 类，User.cs"
 public class User : IdentityUser
 {
     // ... Existing properties ...
@@ -1016,7 +1020,7 @@ public class MarkdownDocument
 
 同时，我们编辑上面的 User 类，增加属性：
 
-```csharp
+```csharp title="为 User 类添加 CreatedDocuments 属性"
 [JsonIgnore]
 [InverseProperty(nameof(MarkdownDocument.User))]
 public IEnumerable<MarkdownDocument> CreatedDocuments { get; set; } = new List<MarkdownDocument>();
@@ -1024,7 +1028,7 @@ public IEnumerable<MarkdownDocument> CreatedDocuments { get; set; } = new List<M
 
 最终这个文件看起来可能像这样：
 
-```csharp
+```csharp title="完整的 User.cs"
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
@@ -1078,7 +1082,7 @@ public class MarkdownDocument
 
 最后，为了显示的表明我们需要一个新表，编辑文件 `./src/MyOrg.MarkToHtml.Entities/MarkToHtmlDbContext.cs`，为 `TemplateDbContext` 添加以下属性：
 
-```csharp
+```csharp title="为 TemplateDbContext 添加 DbSet 属性"
 public DbSet<MarkdownDocument> MarkdownDocuments => Set<MarkdownDocument>();
 ```
 
@@ -1086,7 +1090,7 @@ public DbSet<MarkdownDocument> MarkdownDocuments => Set<MarkdownDocument>();
 
 最终这个文件看起来可能像这样：
 
-```csharp
+```csharp title="完整的 MarkToHtmlDbContext.cs"
 using Aiursoft.DbTools;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -1113,7 +1117,7 @@ Aiursoft Template 支持多种数据库，包括 SQLite、MySQL、InMemory 等�
 
 为了创建迁移，我们需要使用 Entity Framework Core 的命令行工具 `dotnet ef`。如果你还没有安装它，可以使用以下命令来安装：
 
-```bash
+```bash title="安装 dotnet ef 工具"
 dotnet tool install --global dotnet-ef
 ```
 
@@ -1121,7 +1125,7 @@ dotnet tool install --global dotnet-ef
 
 然后，我们需要为 SQLite 和 MySQL 分别创建迁移。为 Sqlite 创建迁移时，需要确保 `./src/MyOrg.MarkToHtml/appsettings.json` 中的 `ConnectionStrings.DbType` 设置为 `Sqlite`，并且 `DefaultConnection` 指向一个 SQLite 数据库文件，例如：
 
-```json
+```json title="修改 appsettings.json"
 {
   "ConnectionStrings": {
     "AllowCache": "True",
@@ -1134,7 +1138,7 @@ dotnet tool install --global dotnet-ef
 
 然后，运行以下命令来创建迁移：
 
-```bash
+```bash title="为 Sqlite 创建迁移"
 cd ./src/MyOrg.MarkToHtml.Sqlite/
 dotnet ef migrations add AddMarkdownDocumentsTable --context "SqliteContext" -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
 ```
@@ -1145,13 +1149,13 @@ dotnet ef migrations add AddMarkdownDocumentsTable --context "SqliteContext" -s 
 
 会注意到类似这样的输出：
 
-```bash
+```bash title="创建迁移的输出"
 Done. To undo this action, use 'ef migrations remove'
 ```
 
 同时，会在 `./src/MyOrg.MarkToHtml.Sqlite/Migrations/` 目录下生成一个新的迁移文件，名字类似 `20231010123456_AddMarkdownDocumentsTable.cs`。其内容可能类似：
 
-```csharp
+```csharp title="生成的迁移文件"
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -1210,7 +1214,7 @@ namespace MyOrg.MarkToHtml.Sqlite.Migrations
 
 然后，我们需要为 MySQL 创建迁移。为 MySQL 创建迁移时，需要确保 `./src/MyOrg.MarkToHtml.MySQL/appsettings.json` 中的 `ConnectionStrings.DbType` 设置为 `MySQL`，并且 `DefaultConnection` 指向一个 MySQL 数据库。其开头可以改成下面这样：
 
-```json
+```json title="修改 MySQL 的 appsettings.json"
 {
   "ConnectionStrings": {
     "AllowCache": "True",
@@ -1223,7 +1227,7 @@ namespace MyOrg.MarkToHtml.Sqlite.Migrations
 
 接下来，为了创建迁移，我们必须启动一个真正的 MySQL。我们可以使用 Docker 来快速启动一个 MySQL 实例：
 
-```bash
+```bash title="使用 Docker 启动 MySQL"
 sudo docker run -d --name db -e MYSQL_RANDOM_ROOT_PASSWORD=true -e MYSQL_DATABASE=template -e MYSQL_USER=template -e MYSQL_PASSWORD=template_password -p 3306:3306 mysql
 ```
 
@@ -1233,7 +1237,7 @@ sudo docker run -d --name db -e MYSQL_RANDOM_ROOT_PASSWORD=true -e MYSQL_DATABAS
 
 这满足了我们的应用程序的连接字符串要求。此时，我们可以使用以下命令来创建迁移：
 
-```bash
+```bash title="为 MySQL 创建迁移"
 cd ./src/MyOrg.MarkToHtml.MySql/ # 务必确保你在这个目录下
 dotnet ef migrations add AddMarkdownDocumentsTable --context "MySqlContext" -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
 ```
@@ -1250,14 +1254,14 @@ dotnet ef migrations add AddMarkdownDocumentsTable --context "MySqlContext" -s .
 
 注意：在创建完 MySQL 迁移后，如果你不再需要这个 MySQL 实例，可以使用以下命令来停止并删除它：
 
-```bash
+```bash title="停止并删除 MySQL 容器"
 sudo docker stop db
 sudo docker rm db
 ```
 
 同时，为了方便本地调试，建议回滚 `appsettings.json` 文件中的 `ConnectionStrings.DbType` 设置为 `Sqlite`，并且 `DefaultConnection` 指向一个 SQLite 数据库文件，例如：
 
-```json
+```json title="回滚 appsettings.json"
 {
   "ConnectionStrings": {
     "AllowCache": "True",
@@ -1439,7 +1443,7 @@ public async Task<IActionResult> Index(IndexViewModel model)
 
 编辑文件 `./src/MyOrg.MarkToHtml/Models/HomeViewModels/IndexViewModel.cs`，添加必要的属性：
 
-```csharp
+```csharp title="IndexViewModel.cs"
 [Required]
 public Guid DocumentId { get; set; } = Guid.NewGuid();
 
@@ -1453,7 +1457,7 @@ public string? Title { get; set; }
 
 修改 `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml`，在 `<form>` 标签内添加以下代码：
 
-```html
+```html title="Index.cshtml"
 <form asp-action="Index" method="post" id="markdown-form">
     <input type="hidden" asp-for="DocumentId" />
     ... Other existing code ...
@@ -1503,7 +1507,7 @@ else
 
 在 `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` 文件中，添加以下代码：
 
-```csharp
+```csharp title="HomeController.cs"
 [Authorize]
 public async Task<IActionResult> Edit([Required][FromRoute]Guid id)
 {
@@ -1542,7 +1546,7 @@ public async Task<IActionResult> Edit([Required][FromRoute]Guid id)
 
 修改 `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` 文件，在左侧的 Markdown 输入区域上方，添加以下代码：
 
-```html
+```html title="Index.cshtml"
 @* Left Column: Markdown Input *@
 <div class="col-lg-6 d-flex">
     <div class="card flex-fill">
@@ -1579,7 +1583,7 @@ public async Task<IActionResult> Edit([Required][FromRoute]Guid id)
 
 在 `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` 文件中，添加以下代码：
 
-```csharp
+```csharp title="HomeController.cs"
 [Authorize]
 [RenderInNavBar(
     NavGroupName = "Features",
@@ -1611,7 +1615,7 @@ public async Task<IActionResult> History()
 
 创建文件 `./src/MyOrg.MarkToHtml/Models/HomeViewModels/HistoryViewModel.cs`，添加以下代码：
 
-```csharp
+```csharp title="HistoryViewModel.cs"
 using Aiursoft.UiStack.Layout;
 using MyOrg.MarkToHtml.Entities;
 
@@ -1630,7 +1634,7 @@ public class HistoryViewModel : UiStackLayoutViewModel
 
 创建文件 `./src/MyOrg.MarkToHtml/Views/Home/History.cshtml`，添加以下代码：
 
-```html
+```html title="History.cshtml"
 @using Aiursoft.WebTools
 @model MyOrg.MarkToHtml.Models.HomeViewModels.HistoryViewModel
 @inject IViewLocalizer Localizer
@@ -1724,7 +1728,7 @@ public class HistoryViewModel : UiStackLayoutViewModel
 
 注意，其中我们使用了一个技巧：`data-utc-time` 属性来存储 UTC 时间。Aiursoft Template 自带的 JavaScript 会自动将其转换为用户本地时间并显示。还记得我们在设计实体的时候是如何定义这个 `CreationTime` 属性的吗？当时的代码是：
 
-```csharp
+```csharp title="MarkdownDocument 的 CreationTime 属性"
 public DateTime CreationTime { get; init; } = DateTime.UtcNow;
 ```
 
@@ -1732,7 +1736,7 @@ public DateTime CreationTime { get; init; } = DateTime.UtcNow;
 
 最后，为了方便用户在编辑页面能够返回到他们的文档列表，我们在 `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` 文件中，找到提交按钮，在它左侧添加一个返回按钮，并且对于已经认证的用户，强调转换按钮有保存的功能。修改如下：
 
-```html
+```html title="Index.cshtml 给提交按钮添加返回按钮"
     @* Submit Button Row *@
     <div class="row mt-3">
         <div class="col text-center">
@@ -1773,7 +1777,7 @@ public DateTime CreationTime { get; init; } = DateTime.UtcNow;
 
 在 `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` 文件中，添加以下代码：
 
-```csharp
+```csharp title="HomeController.cs"
 // GET: /Home/Delete/{guid}
 [Authorize]
 public async Task<IActionResult> Delete(Guid? id)
@@ -1825,7 +1829,7 @@ public async Task<IActionResult> DeleteConfirmed(Guid id)
 
 同时创建 `./src/MyOrg.MarkToHtml/Models/HomeViewModels/DeleteViewModel.cs` 文件，添加以下代码：
 
-```csharp
+```csharp title="DeleteViewModel.cs"
 using Aiursoft.UiStack.Layout;
 using MyOrg.MarkToHtml.Entities;
 
@@ -1845,7 +1849,7 @@ public class DeleteViewModel : UiStackLayoutViewModel
 
 创建 `./src/MyOrg.MarkToHtml/Views/Home/Delete.cshtml` 文件，添加以下代码：
 
-```html
+```html title="Delete.cshtml"
 @using Aiursoft.WebTools
 @model MyOrg.MarkToHtml.Models.HomeViewModels.DeleteViewModel
 @inject IViewLocalizer Localizer
