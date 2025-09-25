@@ -56,7 +56,7 @@ theme:
         name: Switch to system preference
 
 extra:
-  homepage: https://www.anduinos.com
+  homepage: https://template.anduinos.com
   icon:
     annotation: material/arrow-right-circle 
     admonition:
@@ -103,4 +103,17 @@ plugins:
 nav:
   - Home:
     - Documentation: README.md
-    
+  - Tutorial:
+    - Step 1: Tutorial/step1.md
+    - Step 2: Tutorial/step2.md
+    - Step 3: Tutorial/step3.md
+    - Step 4: Tutorial/step4.md
+    - Step 5: Tutorial/step5.md
+    - Step 6: Tutorial/step6.md
+    - Step 7: Tutorial/step7.md
+    - Step 8: Tutorial/step8.md
+    - Step 9: Tutorial/step9.md
+    - Step 10: Tutorial/step10.md
+    - Step 11: Tutorial/step11.md
+    - Step 12: Tutorial/step12.md
+    - Step 13: Tutorial/step13.md

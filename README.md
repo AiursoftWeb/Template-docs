@@ -22,4 +22,18 @@ We strongly suggest getting started by following our [Quick tutorial](./Tutorial
 
 Content:
 
-* [Step 1 - Creating the new project](./Tutorial/step1.md)
+* [开始之前](./Tutorial/before.md)
+* [Step 1 - 创建新项目](./Tutorial/step1.md)
+* [Step 2 - 添加和调试第三方库](./Tutorial/step2.md)
+* [Step 3 - 添加全新的页面](./Tutorial/step3.md)
+* [Step 4 - 添加全新的数据模型并改变数据库结构](./Tutorial/step4.md)
+* [Step 5 - 将数据保存到数据库](./Tutorial/step5.md)
+* [Step 6 - 管理员看板和全新的权限](./Tutorial/step6.md)
+* [Step 7 - 增加全新的配置项目，并支持环境变量](./Tutorial/step7.md)
+* [Step 8 - 添加自定义验证](./Tutorial/step8.md)
+* [Step 9 - 允许用户在前端上传文件](./Tutorial/step9.md)
+* [Step 10 - 软删除和回收站，基于后台任务](./Tutorial/step10.md)
+* [Step 11 - 本地化应用以面向全球用户](./Tutorial/step11.md)
+* [Step 12 - 发布应用到真实的服务器](./Tutorial/step12.md)
+* [Step 13 - 课后练习](./Tutorial/step13.md)
+
