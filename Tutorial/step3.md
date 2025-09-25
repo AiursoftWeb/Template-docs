@@ -189,6 +189,12 @@ public class HomeController(
 
 视图 (View) 是 MVC 模式中的 V，负责渲染用户界面。在我们的结构中，视图使用 Razor 语法来生成 HTML 页面。
 
+!!! note "视图使用 Razor 语法"
+
+    Razor 是一种基于 C# 的模板引擎，允许你在 HTML 中嵌入 C# 代码。它的文件扩展名通常是 `.cshtml`。Razor 语法非常灵活，可以让你轻松地将服务器端的数据渲染到客户端页面。
+
+    强烈建议在继续之前，补习基础的 [Razor 语法](https://learn.microsoft.com/en-us/aspnet/core/mvc/views/razor)。
+
 显然，视图的职责是绘制一个好看的页面，让用户能够输入 markdown 并预览生成的 HTML。
 
 在我们编写视图的时候，只需要尊重 ViewModel 的属性即可。视图文件位于 `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml`。在默认情况下，它可能包含了一些示例内容。可以放心的直接删除，然后进行修改。
@@ -198,7 +204,6 @@ public class HomeController(
 ```html title="Index.cshtml"
 @using MyOrg.MarkToHtml.Controllers
 @model MyOrg.MarkToHtml.Models.HomeViewModels.IndexViewModel
-@inject IViewLocalizer Localizer
 
 @* Page Header *@
 <div class="row mb-2 mb-xl-3">
@@ -413,6 +418,10 @@ public class HomeController(
 !!! note "Aiursoft Template 特有的样式插入方式"
 
     上面的 `@section styles` 是模板文件中预定义的一个部分，用于插入页面特定的样式。你可以在这里添加任何你需要的 CSS 样式。它会渲染在页面的 `<head>` 标签内。除了可以使用内联样式，你也可以使用 `<link>` 标签来引入外部样式表。
+
+!!! warning "务必使用 ReSharper disable once Razor.SectionNotResolved 来避免 Razor 报错"
+
+    由于 Aiursoft Template 使用了自定义的视图引擎，Resharper 或 Rider 可能无法正确识别 `@section styles`，从而报错。为了避免这个问题，我们可以使用 `@* ReSharper disable once Razor.SectionNotResolved *@` 来告诉 Resharper 忽略这个错误。
 
 其中注意：使用 @大括号 ，也就是 `@{ }` 包起来的代码是 C# 代码块，其在服务器端执行。而使用 @@ 符号来转义 @ 符号，以便在 CSS 中使用。在这里，我们得到了一个服务器端变量 `theme`，它根据用户的主题偏好动态设置 CodeMirror 的主题。
 
