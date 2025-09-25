@@ -84,6 +84,10 @@ cd MyOrg.MarkToHtml
 ~/.dotnet/tools/voyager new -t web-app-all-in-one
 ```
 
+!!! warning "每次创建项目时，务必确保 Voyager 运行的目录名称是你想要的项目名称"
+
+    例如，如果你想创建一个名为 `MyOrg.MarkToHtml` 的项目，请确保你在名为 `MyOrg.MarkToHtml` 的文件夹中运行 `voyager new` 命令。Voyager 会默认使用当前目录名称作为项目名称。
+
 你会注意到下面文件被生成：
 
 ```bash title="项目文件结构"
