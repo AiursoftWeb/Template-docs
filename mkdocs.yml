@@ -104,6 +104,7 @@ nav:
   - Home:
     - Documentation: README.md
   - Tutorial:
+    - Before You Start: Tutorial/before.md
     - Step 1: Tutorial/step1.md
     - Step 2: Tutorial/step2.md
     - Step 3: Tutorial/step3.md
