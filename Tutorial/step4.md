@@ -200,6 +200,10 @@ public abstract class TemplateDbContext(DbContextOptions options) : IdentityDbCo
 
 Aiursoft Template 支持多种数据库，包括 SQLite、MySQL、InMemory 等等。用户还可以额外扩展出其它数据库，例如 `PostgreSQL`、`SQL Server` 等等。在这里，我们只为默认的 SQLite 和 MySQL 创建迁移。其中 InMemory 数据库不需要迁移，因为它是临时的，程序每次启动都会重新创建。
 
+!!! tip "迁移，Migration，是一个名词；并不是立刻将数据库改变的意思"
+
+    迁移 (Migration) 是一个名词，表示数据库结构的变更信息。我们创建迁移是为了告诉 EF Core 如何改变数据库结构。程序在启动的时候，会自动比较数据库本身的表结构的版本和最新的迁移版本，并自动运行差异的迁移。这样就能确保数据库结构与实体类保持同步。
+
 为了创建迁移，我们需要使用 Entity Framework Core 的命令行工具 `dotnet ef`。如果你还没有安装它，可以使用以下命令来安装：
 
 ```bash title="安装 dotnet ef 工具"
