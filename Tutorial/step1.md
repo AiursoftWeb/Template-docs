@@ -12,24 +12,26 @@
 
 第一步的目标是创建一个全新的项目。我们推荐你使用 [AnduinOS](https://www.anduinos.com) 1.3 或更高版本来进行实战开发，因为 AnduinOS 1.3+ 非常容易安装 dotnet、bash、npm、git、docker、mysql、nginx 等工具。
 
-如果你不想使用 AnduinOS，你也可以在任何支持 .NET 9.0 的操作系统上进行开发，例如 Windows、macOS 或其他 Linux 发行版。
+!!! question "Aiursoft Template 可以在什么操作系统上运行？"
+
+    如果你不想使用 AnduinOS，你也可以在任何支持 .NET 9.0 的操作系统上进行开发，例如 Windows、macOS 或其他 Linux 发行版。
 
 在开始之前，请确保你已经安装了 `git`、`.NET 9.0 SDK` 和 `docker`。在 AnduinOS 上，你可以使用以下命令安装这些工具：
 
-```bash
+```bash title="在 AnduinOS 上安装必要的工具"
 sudo apt install -y git dotnet9 docker.io
 ```
 
 安装 git 后，你必须配置你的用户名和邮箱：
 
-```bash
+```bash title="配置 git 用户名和邮箱"
 git config --global user.name "Your Name"
 git config --global user.email "YourEmail@domain.com"
 ```
 
 你还需要安装 Node.js 和 npm 以管理前端的依赖。你可以使用以下命令安装它们：
 
-```bash
+```bash title="在 AnduinOS 上安装 Node.js 和 npm"
 curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg --yes
 NODE_MAJOR=22
 echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
@@ -40,7 +42,7 @@ node -v
 
 你还需要一个代码编辑器。我们推荐使用 [Visual Studio Code](https://code.visualstudio.com/) 或 [Jetbrains Rider](https://docs.anduinos.com/Applications/Code-Editors/Jetbrains-Rider/Jetbrains-Rider.html)。你也可以使用以下命令安装 Visual Studio Code：
 
-```bash
+```bash title="在 AnduinOS 上安装 Visual Studio Code"
 cd ~
 wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
 sudo install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
@@ -54,7 +56,7 @@ sudo apt install code -y
 
 为了新建 Aiursoft Template 的项目，你需要安装 Voyager，它是 Aiursoft Template 的脚手架工具。你可以通过以下命令安装它：
 
-```bash
+```bash title="安装 Voyager"
 dotnet tool install --global Aiursoft.Voyager
 voyager --version
 ```
@@ -84,13 +86,13 @@ cd MyOrg.MarkToHtml
 
 然后使用 voyager 初始化项目：
 
-```bash
+```bash title="使用 Voyager 创建新项目"
 ~/.dotnet/tools/voyager new -t web-app-all-in-one
 ```
 
 你会注意到下面文件被生成：
 
-```bash
+```bash title="项目文件结构"
 .
 ├── CODE_OF_CONDUCT.md
 ├── Dockerfile
@@ -142,20 +144,20 @@ cd MyOrg.MarkToHtml
 
 你需要先还原前端的依赖。你可以使用以下命令来安装前端依赖：
 
-```bash
+```bash title="安装前端依赖"
 cd ./src/MyOrg.MarkToHtml/wwwroot/
 npm install
 ```
 
 你可以使用以下命令来编译项目：
 
-```bash
+```bash title="编译项目"
 dotnet build ./MyOrg.MarkToHtml.sln
 ```
 
 如果编译成功，你可以使用以下命令来运行项目：
 
-```bash
+```bash title="运行项目"
 cd ./src/MyOrg.MarkToHtml/
 dotnet run
 ```
@@ -169,7 +171,9 @@ dotnet run
 
 ## Step 1.4 配置项目使用的数据库 (可选)
 
-> 这一步是完全可选的。如果你想使用默认配置，可以跳过这一步。
+!!! tip "这一步是完全可选的"
+
+    这一步是完全可选的。如果你想使用默认配置，也就是直接用最简单的 Sqlite 数据库，则可以跳过这一步。
 
 默认情况下，应用会使用 SQLite 作为数据库。这是配置在 `appsettings.json` 文件中的。如果你想使用其他数据库（如 MySQL 或 SQL Server），你需要修改 `appsettings.json` 文件中的连接字符串。在默认情况下，第一次启动会自动创建并播种数据库，您会注意到 `app.db` 文件被创建在 `src/MyOrg.MarkToHtml/` 目录下。
 
@@ -193,14 +197,14 @@ dotnet run
 
 为了安装 Markdig，我们需要使用 NuGet 包管理器。你可以使用以下命令来安装它：
 
-```bash
+```bash title="安装 Markdig"
 cd ./src/MyOrg.MarkToHtml/
 dotnet add package Markdig
 ```
 
 接下来，我们额外安装一个能够避免生成的 HTML 被 XSS 攻击的库，叫做 [HtmlSanitizer](https://github.com/mganss/HtmlSanitizer)。你可以使用以下命令来安装它：
 
-```bash
+```bash title="安装 HtmlSanitizer"
 # cd ./src/MyOrg.MarkToHtml/
 dotnet add package HtmlSanitizer
 ```
@@ -216,7 +220,9 @@ dotnet add package HtmlSanitizer
 
 ## Step 2.2 测试第三方库的工作能力 (可选)
 
-> 这一步是完全可选的，是为了演示如何调试第三方库。如果你相信 Markdig 能够正常工作，可以跳过这一步。
+!!! tip "这一步是完全可选的"
+
+    这一步是完全可选的，是为了演示如何调试第三方库。如果你相信 Markdig 能够正常工作，可以跳过这一步。
 
 接下来，我们需要先测试一下 Markdig 和 HtmlSanitizer 是否能正常工作。为此，我们直接修改 `./src/MyOrg.MarkToHtml/Program.cs` 文件，将 `Main` 方法原有内容暂时注释，然后暂时添加用于测试 Markdig 的以下代码：
 
@@ -420,13 +426,13 @@ public class MarkToHtmlService(MarkdownPipeline pipeline, HtmlSanitizer sanitize
 
 同样的，我们在构造方法中索要了 `MarkdownPipeline` 和 `HtmlSanitizer` 的实例。因为我们在 `Startup.cs` 文件中已经将它们注册为单例，所以这里会自动注入同一个实例。
 
-务必牢记：
+!!! tip "关于依赖注入的生命周期"
 
-> Singleton 的服务在整个应用生命周期内只会创建一个实例，适用于无状态且线程安全的服务。它只能依赖其它 Singleton 的服务。不可以依赖 Scoped 或 Transient 的服务。
-> Scoped 的服务在每个请求的生命周期内创建一个实例，适用于需要在请求间保持状态的服务。它可以依赖 Singleton 和 Scoped 的服务。不可以依赖 Transient 的服务。
-> Transient 的服务每次请求都会创建一个新的实例，适用于轻量级且无状态的服务。它可以依赖任何类型的服务，包括 Singleton、Scoped 和 Transient。
+    * Singleton 的服务在整个应用生命周期内只会创建一个实例，适用于无状态且线程安全的服务。它只能依赖其它 Singleton 的服务。不可以依赖 Scoped 或 Transient 的服务。
+    * Scoped 的服务在每个请求的生命周期内创建一个实例，适用于需要在请求间保持状态的服务。它可以依赖 Singleton 和 Scoped 的服务。不可以依赖 Transient 的服务。
+    * Transient 的服务每次请求都会创建一个新的实例，适用于轻量级且无状态的服务。它可以依赖任何类型的服务，包括 Singleton、Scoped 和 Transient。
 
-打破上面的规则，应用仍然可以编译，甚至某些情况下可能可以运行；但容易产生非常诡异的生命周期问题，导致难以调试的 bug。
+    打破上面的规则，应用仍然可以编译，甚至某些情况下可能可以运行；但容易产生非常诡异的生命周期问题，导致难以调试的 bug。
 
 因此，在这里我们将 `MarkdownPipeline` 和 `HtmlSanitizer` 注册为 Singleton，因为它们是黑盒，又线程安全，还可以反复使用也就是无状态的。而 `MarkToHtmlService` 则注册为 Transient，因为构造它开销较小且无状态。
 
@@ -503,7 +509,9 @@ public IActionResult Index(IndexViewModel model)
 }
 ```
 
-> 注意：Aiursoft Template 要求所有返回视图时，均使用 `this.StackView(model)` 方法来返回视图，而不是直接使用 `return View(model)`。这是因为 `StackView` 方法会自动处理一些 Aiursoft UiStack 相关的逻辑，例如导航栏、布局等。
+!!! tip "Aiursoft Template 特有的返回视图方式"
+
+    Aiursoft Template 要求所有返回视图时，均使用 `this.StackView(model)` 方法来返回视图，而不是直接使用 `return View(model)`。这是因为 `StackView` 方法会自动处理一些 Aiursoft UiStack 相关的逻辑，例如导航栏、布局等。
 
 其中，`[HttpPost]` 特性表示这个方法只处理 POST 请求，`[ValidateAntiForgeryToken]` 特性用于防止跨站请求伪造 (CSRF) 攻击。ASP.NET Core 的表单在提交时会自动包含一个防伪令牌，服务器端会验证这个令牌以确保请求的合法性。
 
@@ -659,7 +667,9 @@ public class HomeController(
 
 例如：`@* Something *@` 用于添加注释；`@model` 用于指定视图使用的 ViewModel 类型，从而可以通过 `@Model.Something` 来访问 ViewModel，`@inject` 用于注入服务，`@Localizer["Some Text"]` 用于本地化字符串，`@Html.Raw(Model.OutputHtml)` 用于渲染未经编码的 HTML 内容。
 
-当然，你也可以继续使用熟悉的 C# 语法来动态渲染，例如 `@if`、`@for`、`@foreach` 等等。这种技巧可以让你轻松地将服务器端的数据渲染到客户端页面。但注意：它会在服务器端执行，将 C# 变量的值插入到生成的 HTML 中，再将其发送到客户端执行。相当于是使用 C# 在动态拼接 HTML，这种技巧叫作“服务器端渲染”，其优先级高于 JavaScript，可以在没有 JavaScript 的情况下运行；但缺点是无法在前端动态改变，并且会占用服务器的算力。
+!!! example "Razor 语法中的 C# 代码块"
+
+    当然，你也可以继续使用熟悉的 C# 语法来动态渲染，例如 `@if`、`@for`、`@foreach` 等等。这种技巧可以让你轻松地将服务器端的数据渲染到客户端页面。但注意：它会在服务器端执行，将 C# 变量的值插入到生成的 HTML 中，再将其发送到客户端执行。相当于是使用 C# 在动态拼接 HTML，这种技巧叫作“服务器端渲染”，其优先级高于 JavaScript，可以在没有 JavaScript 的情况下运行；但缺点是无法在前端动态改变，并且会占用服务器的算力。
 
 在后面的例子中，我们将大量使用这种技巧来渲染页面。
 
@@ -912,7 +922,9 @@ Aiursoft Template 提供了强大的基础设施，让你能够专注于业务�
 
 如果你非常熟悉 Entity Framework Core，可以跳过这一步。
 
-Entity Framework Core (EF Core) 是一个强大的对象关系映射 (ORM) 工具，允许你使用 .NET 对象来操作数据库，而不必直接编写 SQL 语句。它支持多种数据库，包括 SQLite、MySQL、SQL Server、PostgreSQL 等等。
+!!! abstract "什么是 Entity Framework Core？"
+
+    Entity Framework Core (EF Core) 是一个强大的对象关系映射 (ORM) 工具，允许你使用 .NET 对象来操作数据库，而不必直接编写 SQL 语句。它支持多种数据库，包括 SQLite、MySQL、SQL Server、PostgreSQL 等等。
 
 例如，它的语法类似：
 
@@ -938,7 +950,9 @@ LIMIT 10 OFFSET 10;
 
 在这个例子里，我们将新建一个表，叫做 `MarkdownDocuments`，用于存储用户的 markdown 文档。但真实的数据库里并不存在这个表。因此，我们需要创建一个迁移来告诉 EF Core 如何创建这个表。迁移包含了数据库结构的变更信息。程序在启动的时候，会自动比较数据库本身的表结构的版本和最新的迁移版本，并自动运行差异的迁移。这样就能确保数据库结构与实体类保持同步。
 
-如果忘记了创建迁移，或迁移没有成功运行，程序会仍然能运行，但执行的 SQL 可能无法正确在数据库里完成预期的操作，导致程序运行时出现异常。因此，每次修改了实体类后，都应该创建一个新的迁移。
+!!! warning "不要在改变了实体类后忘记创建迁移！"
+
+    如果忘记了创建迁移，或迁移没有成功运行，程序会仍然能运行，但执行的 SQL 可能无法正确在数据库里完成预期的操作，导致程序运行时出现异常。因此，每次修改了实体类后，都应该创建一个新的迁移。
 
 ## Step 4.2 创建新的数据模型
 
@@ -951,7 +965,7 @@ LIMIT 10 OFFSET 10;
 ```csharp
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 ```
 
 添加一个新的类 `MarkdownDocuments`，表示用户拥有的所有 markdown 文档。
@@ -994,9 +1008,11 @@ public class MarkdownDocument
 * `UserId`：文档所属用户的 ID，使用字符串类型，长度为 64 个字符。
 * `User`：导航属性，表示文档所属的用户。其中 `UserId` 是外键，引用了 `User` 实体的主键。
 
-> 关系型数据库的表之间通常通过外键来建立关联。在上面的例子中，`MarkdownDocument` 实体通过 `UserId` 属性与 `User` 实体建立了多对一的关系。也就是说，一个用户可以拥有多个文档，而每个文档只能属于一个用户。
+!!! info "关系型数据库的关系"
 
-在这里我们使用了一些 `Attributes`，例如 `[Key]`、`[MaxLength]`、`[StringLength]`、`[ForeignKey]` 等等。这些 `Attributes` 用于告诉 Entity Framework Core 如何映射这个类到数据库表。而 `[NotNull]` 和 `[JsonIgnore]` 则用于告诉编译器和 JSON 序列化器如何处理这些属性。
+    关系型数据库的表之间通常通过外键来建立关联。在上面的例子中，`MarkdownDocument` 实体通过 `UserId` 属性与 `User` 实体建立了多对一的关系。也就是说，一个用户可以拥有多个文档，而每个文档只能属于一个用户。
+
+在这里我们使用了一些 `Attributes`，例如 `[Key]`、`[MaxLength]`、`[StringLength]`、`[ForeignKey]` 等等。这些 `Attributes` 用于告诉 Entity Framework Core 如何映射这个类到数据库表。而 `[NotNull]` 和 `[JsonIgnore]` 则用于避免在 Controller 中试图 JSON 序列化时出现循环引用的问题。
 
 同时，我们编辑上面的 User 类，增加属性：
 
@@ -1012,7 +1028,7 @@ public IEnumerable<MarkdownDocument> CreatedDocuments { get; set; } = new List<M
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 using Microsoft.AspNetCore.Identity;
 
 namespace MyOrg.MarkToHtml.Entities;
@@ -1123,6 +1139,10 @@ cd ./src/MyOrg.MarkToHtml.Sqlite/
 dotnet ef migrations add AddMarkdownDocumentsTable --context "SqliteContext" -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
 ```
 
+!!! note "上面的命令不会改变任何数据库结构！"
+
+    这个命令只是创建一个迁移文件，告诉 EF Core 如何创建 `MarkdownDocuments` 表。它不会实际改变数据库结构。要实际应用这个迁移，程序在启动时会自动应用所有未应用的迁移。
+
 会注意到类似这样的输出：
 
 ```bash
@@ -1207,6 +1227,10 @@ namespace MyOrg.MarkToHtml.Sqlite.Migrations
 sudo docker run -d --name db -e MYSQL_RANDOM_ROOT_PASSWORD=true -e MYSQL_DATABASE=template -e MYSQL_USER=template -e MYSQL_PASSWORD=template_password -p 3306:3306 mysql
 ```
 
+!!! info "创建迁移需要可以连接到数据库"
+
+    虽然创建迁移不会改变数据库结构，但它需要连接到数据库，以便 EF Core 能够读取数据库的元数据，从而生成正确的迁移代码。因此，确保你的 MySQL 实例正在运行，并且连接字符串正确无误。
+
 这满足了我们的应用程序的连接字符串要求。此时，我们可以使用以下命令来创建迁移：
 
 ```bash
@@ -1216,9 +1240,13 @@ dotnet ef migrations add AddMarkdownDocumentsTable --context "MySqlContext" -s .
 
 类似的，也会在 `./src/MyOrg.MarkToHtml.MySQL/Migrations/` 目录下生成一个新的迁移文件，名字类似 `20231010123456_AddMarkdownDocumentsTable.cs`。将其内容仔细 Review 一下，确保它符合我们的预期，即可继续。
 
-### Step 4.3.3 清理工作 删除数据库、回滚 appsettings.json
+### Step 4.3.3 清理工作 删除数据库、回滚 appsettings.json (可选)
 
 注意：如果你在创建迁移时遇到错误，提示无法连接到数据库，或者找不到某些类型，可能是因为你的 MySQL 服务器没有正确启动，或者你忘记了修改 `appsettings.json` 文件中的连接字符串。请确保你的 MySQL 服务器正在运行，并且连接字符串正确无误。
+
+!!! note "如果你打算继续用 MySQL 来调试，这个步骤可以跳过"
+
+    在经历了刚才的步骤后，你可能会想继续使用 MySQL 来调试应用程序。在这种情况下，你可以跳过下面的清理工作，直接运行应用程序。
 
 注意：在创建完 MySQL 迁移后，如果你不再需要这个 MySQL 实例，可以使用以下命令来停止并删除它：
 
@@ -1244,13 +1272,15 @@ sudo docker rm db
 
 ## Step 4.4 运行应用并验证数据库自动迁移（可选）
 
-> 这一步是可选的。因为在生产环境中，迁移会在应用启动时自动运行。
+!!! tip "这一步是可选的"
+
+    这一步是可选的。因为在生产环境中，迁移会在应用启动时自动运行。
 
 现在，我们已经创建了迁移，接下来我们需要运行应用程序，并让它自动应用这些迁移，从而更新数据库结构。
 
 在开始之前，我们可以先阅读一下 `./src/MyOrg.MarkToHtml/Startup.cs` 文件，了解一下应用程序是如何配置数据库的。找到下面代码，无需修改：
 
-```csharp
+```csharp title="Startup.cs 中的关键数据库配置代码"
 var (connectionString, dbType, allowCache) = configuration.GetDbSettings();
 services.AddSwitchableRelationalDatabase(
     dbType: EntryExtends.IsInUnitTests() ? "InMemory": dbType,
@@ -1278,7 +1308,7 @@ dotnet run
 
 在这次的运行中，会注意到下面的输出（注意：它只会在第一次运行时出现）：
 
-```bash
+```bash title="程序输出"
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
       Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
       SELECT "MigrationId", "ProductVersion"
@@ -1324,7 +1354,7 @@ info: MyOrg.MarkToHtml.Entities.TemplateDbContext[0]
 
 首先，我们需要修改 `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` 文件，添加必要的 using 语句：
 
-```csharp
+```csharp title="HomeController.cs"
 using System.ComponentModel.DataAnnotations;
 using Aiursoft.CSTools.Tools;
 using MyOrg.MarkToHtml.Models.HomeViewModels;
@@ -1339,7 +1369,7 @@ using MyOrg.MarkToHtml.Entities;
 
 然后我们调整其构造方法，支持日志、数据库和用户管理器：
 
-```csharp
+```csharp title="HomeController.cs"
 public class HomeController(
     ILogger<HomeController> logger,
     UserManager<User> userManager,
@@ -1351,7 +1381,7 @@ public class HomeController(
 
 将 `Index` 方法修改为：
 
-```csharp
+```csharp title="HomeController.cs"
 [HttpPost]
 [ValidateAntiForgeryToken]
 public async Task<IActionResult> Index(IndexViewModel model)
@@ -1523,6 +1553,7 @@ public async Task<IActionResult> Edit([Required][FromRoute]Guid id)
             </h5>
         </div>
         <div class="card-body p-2">
+            @* Add this block for editing title if in editing mode *@
             @if (Model.IsEditing)
             {
                 <div class="mb-3">
@@ -1705,6 +1736,7 @@ public DateTime CreationTime { get; init; } = DateTime.UtcNow;
     @* Submit Button Row *@
     <div class="row mt-3">
         <div class="col text-center">
+            @* Add the back button *@
             @if ((User.Identity?.IsAuthenticated ?? false) && Model.IsEditing)
             {
                 <a asp-action="History" class="btn btn-outline-secondary btn-lg mr-2">
