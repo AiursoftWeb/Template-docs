@@ -765,7 +765,9 @@ public class AdminController(
 }
 ```
 
-用于编辑文档的视图 `EditDocument.cshtml`：
+用于编辑文档的视图 `EditDocument.cshtml`。
+
+这里我们可以直接从之前已经开发好的 `Home/Index.cshtml` 复制过来，并做一些修改，删掉无意义的用于渲染 HTML 预览的代码即可。
 
 ```html title="EditDocument.cshtml"
 @using MyOrg.MarkToHtml.Controllers
@@ -909,7 +911,7 @@ public class AdminController(
 }
 ```
 
-以及用于删除文档的视图 `DeleteDocument.cshtml`：
+以及用于删除文档的视图 `DeleteDocument.cshtml`。这里已经是纯体力活了。这些内容几乎都是非常标准、静态的 HTML 代码。可以考虑借助一些 AI 工具来生成这些代码。
 
 ```html title="DeleteDocument.cshtml"
 @using Aiursoft.WebTools
