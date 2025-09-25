@@ -472,7 +472,7 @@ public class AdminController(
     在紧急情况下，可以吊销所有用户的登录状态，强制他们重新登录以获得最新的权限。可以通过删除：
 
     * 本地调试: `~/.aspnet/DataProtection-Keys` 目录
-    * 生产环境：`/data/aspnet/DataProtection-Keys` 目录
+    * Docker 环境：`/data/aspnet/DataProtection-Keys` 目录
 
     即可。
 
