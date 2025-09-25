@@ -18,7 +18,7 @@
 
 ## Getting Started
 
-We strongly suggest getting started by following our [Quick tutorial](./Tutorial/step1.md) to set up a basic project.
+We strongly suggest getting started by following our [Quick tutorial](./Tutorial/before.md) to set up a basic project.
 
 Content:
 
@@ -36,4 +36,3 @@ Content:
 * [Step 11 - 本地化应用以面向全球用户](./Tutorial/step11.md)
 * [Step 12 - 发布应用到真实的服务器](./Tutorial/step12.md)
 * [Step 13 - 课后练习](./Tutorial/step13.md)
-
