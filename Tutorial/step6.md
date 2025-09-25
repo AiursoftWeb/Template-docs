@@ -501,7 +501,6 @@ public class AdminController(
     }
 </style>
 
-@* Page Header *@
 <div class="row mb-2 mb-xl-3">
     <div class="col-auto d-none d-sm-block">
         <h3>@Localizer["All Documents"]</h3>
@@ -632,7 +631,6 @@ public class AdminController(
     }
 </style>
 
-@* Page Header *@
 <div class="row mb-2 mb-xl-3">
     <div class="col-auto d-none d-sm-block">
         <h3>@Localizer["Documents by"] @Model.User.DisplayName</h3>
@@ -777,7 +775,6 @@ public class AdminController(
     var canDeleteAnyDocument = (await AuthorizationService.AuthorizeAsync(User, AppPermissionNames.CanDeleteAnyDocument)).Succeeded;
 }
 
-@* Page Header *@
 <div class="row mb-2 mb-xl-3">
     <div class="col-auto d-none d-sm-block">
         <h3>@Localizer["Edit Document"]</h3>
@@ -799,7 +796,6 @@ public class AdminController(
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         <div class="d-flex">
             <div class="alert-icon pe-3">
-                @* Icon updated to the theme's standard Lucide icon set. *@
                 <i class="align-middle" data-lucide="alert-triangle"></i>
             </div>
             <div class="alert-message">
@@ -811,7 +807,6 @@ public class AdminController(
 }
 
 <form asp-action="EditDocument" method="post">
-    @* 必须包含 DocumentId，以便 POST 请求知道要更新哪个文档 *@
     <input type="hidden" asp-for="DocumentId" />
 
     <div class="card">
