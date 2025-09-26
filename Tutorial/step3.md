@@ -119,6 +119,19 @@ public class HomeController(
     MarkToHtmlService mtohService) : Controller
 ```
 
+接下来，修改 `Index` 方法的 `GET` 方法的 `[RenderInNavBar]` 特性，确保它的名称已经修改为 "Convert Document"：
+
+```csharp title="修改 HomeController 的 Index 方法的 RenderInNavBar 特性"
+[RenderInNavBar(
+NavGroupName = "Features",
+NavGroupOrder = 1,
+CascadedLinksGroupName = "Home",
+CascadedLinksIcon = "home",
+CascadedLinksOrder = 1,
+LinkText = "Convert Document",
+LinkOrder = 1)]
+```
+
 然后**增加**一个新的 `Index` 方法来处理 POST 请求，将输入的 markdown 转换为 HTML：
 
 ```csharp title="添加 Index POST 方法"
@@ -163,7 +176,7 @@ public class HomeController(
         CascadedLinksGroupName = "Home",
         CascadedLinksIcon = "home",
         CascadedLinksOrder = 1,
-        LinkText = "Index",
+        LinkText = "Convert Document",
         LinkOrder = 1)]
     public IActionResult Index()
     {
