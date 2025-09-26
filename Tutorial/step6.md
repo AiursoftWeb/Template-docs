@@ -6,7 +6,7 @@
 
 因此，在这一章节，我们将介绍权限系统的设计思路，并实现一个简单的管理员看板。
 
-## Step 6.1 理解 Aiursoft Template 的权限系统
+## Step 6.1 理解 Aiursoft Template 的权限系统 (可选)
 
 在继续之前，我们需要理解 Aiursoft Template 的权限系统是基于角色 `Role` 的。每个用户 `User` 可以拥有多个角色，每个角色可以拥有多个权限 `Claim`。
 
