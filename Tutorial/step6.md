@@ -165,6 +165,8 @@ new(AppPermissionNames.CanEditAnyDocument,
 
 首先，创建四个关键的 ViewModel：
 
+新建文件夹 `./src/MyOrg.MarkToHtml/Models/AdminViewModels/`，用于存放管理员看板相关的 ViewModel。
+
 在 `./src/MyOrg.MarkToHtml/Models/AdminViewModels/` 目录下创建四个文件，内容分别为：
 
 用于查看所有文档的 ViewModel `AllDocumentsViewModel.cs`：
