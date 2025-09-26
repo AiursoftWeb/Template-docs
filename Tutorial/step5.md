@@ -8,7 +8,7 @@
 
 首先，我们需要修改 `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` 文件，添加必要的 using 语句：
 
-```csharp title="HomeController.cs"
+```csharp title="HomeController.cs 的 using 语句"
 using System.ComponentModel.DataAnnotations;
 using Aiursoft.CSTools.Tools;
 using MyOrg.MarkToHtml.Models.HomeViewModels;
@@ -23,7 +23,7 @@ using MyOrg.MarkToHtml.Entities;
 
 然后我们调整其构造方法，支持日志、数据库和用户管理器：
 
-```csharp title="HomeController.cs"
+```csharp title="HomeController.cs 的构造方法"
 public class HomeController(
     ILogger<HomeController> logger,
     UserManager<User> userManager,
@@ -35,7 +35,7 @@ public class HomeController(
 
 将 `Index` 方法修改为：
 
-```csharp title="HomeController.cs"
+```csharp title="HomeController.cs 重构的 Index 的 POST 方法"
 [HttpPost]
 [ValidateAntiForgeryToken]
 public async Task<IActionResult> Index(IndexViewModel model)
@@ -115,11 +115,11 @@ public string? Title { get; set; }
 
 这样在每次提交的时候，都会将 `DocumentId` 一起提交到服务器端。
 
-### Step 5.1.1 理解保存和更新逻辑
+### Step 5.1.1 理解保存和更新逻辑 (可选)
 
 阅读服务端的代码，其中核心逻辑是：
 
-```csharp
+```csharp title="HomeController.cs 的 Index 方法"
 var documentInDb = await context.MarkdownDocuments
     .FirstOrDefaultAsync(d => d.Id == model.DocumentId && d.UserId == userId);
 if (documentInDb != null)
@@ -157,7 +157,7 @@ else
 
 在 `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` 文件中，添加以下代码：
 
-```csharp title="HomeController.cs"
+```csharp title="HomeController.cs 的 Edit 方法"
 [Authorize]
 public async Task<IActionResult> Edit([Required][FromRoute]Guid id)
 {
@@ -196,7 +196,7 @@ public async Task<IActionResult> Edit([Required][FromRoute]Guid id)
 
 修改 `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` 文件，在左侧的 Markdown 输入区域上方，添加以下代码：
 
-```html title="Index.cshtml"
+```html title="Index.cshtml 调整其 Markdown 输入区域"
 @* Left Column: Markdown Input *@
 <div class="col-lg-6 d-flex">
     <div class="card flex-fill">
@@ -437,7 +437,7 @@ public DateTime CreationTime { get; init; } = DateTime.UtcNow;
 
 在 `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` 文件中，添加以下代码：
 
-```csharp title="HomeController.cs"
+```csharp title="HomeController.cs 的 Delete 方法"
 // GET: /Home/Delete/{guid}
 [Authorize]
 public async Task<IActionResult> Delete(Guid? id)
