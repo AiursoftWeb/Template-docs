@@ -94,7 +94,7 @@ public async Task<IActionResult> Index(IndexViewModel model)
 编辑文件 `./src/MyOrg.MarkToHtml/Models/HomeViewModels/IndexViewModel.cs`，添加必要的属性：
 
 ```csharp title="IndexViewModel.cs"
-[Required]
+[Required(ErrorMessage = "Something went wrong, please try again later.")]
 public Guid DocumentId { get; set; } = Guid.NewGuid();
 
 public bool IsEditing { get; init; }

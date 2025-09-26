@@ -214,12 +214,12 @@ public class EditDocumentViewModel : UiStackLayoutViewModel
     [MaxLength(100)]
     public string? Title { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "Please input your markdown content!")]
     [MaxLength(65535)]
     [Display(Name = "Markdown Content")]
     public string InputMarkdown { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "Please select the owner of this document!")]
     [Display(Name = "Owner")]
     public string SelectedUserId { get; set; } = string.Empty;
 

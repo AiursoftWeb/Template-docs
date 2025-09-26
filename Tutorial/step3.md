@@ -84,7 +84,7 @@ public class IndexViewModel : UiStackLayoutViewModel
         PageTitle = "Markdown to HTML Converter";
     }
 
-    [Required]
+    [Required(ErrorMessage = "Please input your markdown content!")]
     public string InputMarkdown { get; set; } = """
                                                 # Hello world!
 
