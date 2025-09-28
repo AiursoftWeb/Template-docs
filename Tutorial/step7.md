@@ -80,7 +80,13 @@ Aiursoft Template 使用 ASP.NET Core 自带的配置系统。配置系统允许
 
 类似的，我们也可以使用环境变量来覆盖配置文件中的配置。
 
-这一次，我们回滚``appsettings.json` 文件中的配置，考虑到环境变量拥有更高的优先级，我们可以直接设置环境变量 `AppSettings__Local__AllowRegister` 为 `false` 来禁止注册功能。
+这一次，我们回滚`appsettings.json` 文件中的配置，考虑到环境变量拥有更高的优先级，我们可以直接设置环境变量 `AppSettings__Local__AllowRegister` 为 `false` 来禁止注册功能。
+
+!!! note "环境变量的优先级最高"
+
+    ASP.NET Core 的配置系统中，环境变量的优先级高于配置文件中的配置，因此我们可以使用环境变量来覆盖配置文件中的配置。
+
+    在上面的例子中，即使我们把 `appsettings.json` 文件中的 `AppSettings:Local:AllowRegister` 设置为 `true`，但是只要我们设置了环境变量 `AppSettings__Local__AllowRegister` 为 `false`，注册功能依然会被禁止。
 
 这一次，使用下面的命令来启动项目：
 
