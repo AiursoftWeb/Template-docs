@@ -111,4 +111,205 @@ AppSettings__Local__AllowRegister=false dotnet run
 
 下面，我们将以 `AppSettings:AllowAnonymousUsage` 为例，来演示如何添加一个新的配置项目，并在代码中使用它。
 
-首先，编辑
+首先，编辑 `appsettings.json` 文件中的 `AppSettings` 节，添加一个新的配置项 `AllowAnonymousUsage`，并设置它的默认值为 `true`：
+
+```json title="添加新的配置项 AllowAnonymousUsage"
+...
+  "AppSettings": {
+    "AuthProvider": "Local",
+    "DefaultRole": "",
+    "PersistsSignIn": false,
+    "AllowAnonymousUsage": true, // 新增的配置项
+    ...
+  }
+...
+```
+
+接下来，我们编辑 `./src/MyOrg.MarkToHtml/Configuration/AppSettings.cs` 文件，添加一个新的属性 `AllowAnonymousUsage`：
+
+```csharp title="添加新的配置项 AllowAnonymousUsage"
+public bool AllowAnonymousUsage { get; init; } = true;
+```
+
+此时，`AppSettings.cs` 文件可能是下面的样子：
+
+```csharp title="AppSettings.cs 完整代码"
+namespace MyOrg.MarkToHtml.Configuration;
+
+public class AppSettings
+{
+    public required string AuthProvider { get; init; } = "Local";
+    public bool LocalEnabled => AuthProvider == "Local";
+    public bool OIDCEnabled => AuthProvider == "OIDC";
+
+    public required OidcSettings OIDC { get; init; }
+    public required LocalSettings Local { get; init; }
+
+    /// <summary>
+    /// Keep the user sign in after the browser is closed.
+    /// </summary>
+    public bool PersistsSignIn { get; init; }
+
+    /// <summary>
+    /// Automatically assign the user to this role when they log in.
+    /// </summary>
+    public string? DefaultRole { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Allow anonymous users to use the application.
+    /// </summary>
+    public bool AllowAnonymousUsage { get; init; } = true; // <-- 新增的配置项
+}
+```
+
+接下来，我们可以在代码中使用这个新的配置项了。
+
+这个配置项的功能是禁止匿名使用，我们直接来到 `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` 文件，首先从依赖注入中索要 `IOptions<AppSettings>`：
+
+```csharp title="在 HomeController 中注入 IOptions<AppSettings>"
+public class HomeController(
+    IOptions<AppSettings> appSettings,
+    ILogger<HomeController> logger,
+    UserManager<User> userManager,
+    TemplateDbContext context,
+    MarkToHtmlService mtohService) : Controller
+```
+
+然后在 `Index` 方法中，检查这个配置项，如果发现应用程序禁止匿名使用，并且当前用户未登录，则直接返回 `Challenge()` 结果，强制用户登录：
+
+!!! tip "Change() 方法是什么？"
+
+    `Challenge()` 方法会触发认证中间件，通常会将用户重定向到登录页面。如果你使用的是 OIDC 认证，则会将用户重定向到 OIDC 提供者的登录页面。
+
+    返回 `Challenge()` 结果，要远远比 `return RedirectToAction("Login", "Account")` 更加通用和可靠。尤其是考虑应用可能会使用多种认证方式，例如 OIDC、Local 等。
+
+```csharp title="在 Index 方法中检查 AllowAnonymousUsage 配置项"
+    public IActionResult Index()
+    {
+        if (!User.Identity!.IsAuthenticated && !appSettings.Value.AllowAnonymousUsage)
+        {
+            logger.LogWarning("Anonymous user trying to access the home page. But it is not allowed.");
+            return Challenge();
+        }
+        return this.StackView(new IndexViewModel());
+    }
+```
+
+同样的，`Index` 的 POST 方法也需要检查这个配置项。最终，`HomeController.cs` 文件可能是下面的样子：
+
+```csharp title="HomeController.cs 完整代码"
+using System.ComponentModel.DataAnnotations;
+using Aiursoft.CSTools.Tools;
+using MyOrg.MarkToHtml.Models.HomeViewModels;
+using MyOrg.MarkToHtml.Services;
+using Aiursoft.UiStack.Navigation;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using MyOrg.MarkToHtml.Configuration;
+using MyOrg.MarkToHtml.Entities;
+
+namespace MyOrg.MarkToHtml.Controllers;
+
+public class HomeController(
+    IOptions<AppSettings> appSettings,
+    ILogger<HomeController> logger,
+    UserManager<User> userManager,
+    TemplateDbContext context,
+    MarkToHtmlService mtohService) : Controller
+{
+    [RenderInNavBar(
+        NavGroupName = "Features",
+        NavGroupOrder = 1,
+        CascadedLinksGroupName = "Home",
+        CascadedLinksIcon = "home",
+        CascadedLinksOrder = 1,
+        LinkText = "Convert Document",
+        LinkOrder = 1)]
+    public IActionResult Index()
+    {
+        if (!appSettings.Value.AllowAnonymousUsage)
+        {
+            logger.LogWarning("Anonymous user trying to access the home page. But it is not allowed.");
+            return Challenge();
+
+        }
+        return this.StackView(new IndexViewModel());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Index(IndexViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return this.StackView(model);
+        }
+
+        var userId = userManager.GetUserId(User);
+        if (User.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(userId))
+        {
+            // If the user is authenticated, this action only saves the document in the database. And it's `edit` action to render it.
+            // And go to the edit page.
+            logger.LogTrace("Authenticated user submitted a document with ID: '{Id}'. Save it to the database.",
+                model.DocumentId);
+            var documentInDb = await context.MarkdownDocuments
+                .FirstOrDefaultAsync(d => d.Id == model.DocumentId && d.UserId == userId);
+            if (documentInDb != null)
+            {
+                logger.LogInformation("Updating the document with ID: '{Id}'.", model.DocumentId);
+                documentInDb.Content = model.InputMarkdown.SafeSubstring(65535);
+                documentInDb.Title = model.Title;
+            }
+            else
+            {
+                logger.LogInformation("Creating a new document with ID: '{Id}'.", model.DocumentId);
+                model.DocumentId = Guid.NewGuid();
+                var newDocument = new MarkdownDocument
+                {
+                    Id = model.DocumentId,
+                    Content = model.InputMarkdown.SafeSubstring(65535),
+                    Title = model.InputMarkdown.SafeSubstring(40),
+                    UserId = userId
+                };
+                context.MarkdownDocuments.Add(newDocument);
+            }
+
+            await context.SaveChangesAsync();
+            return RedirectToAction(nameof(Edit), new { id = model.DocumentId });
+        }
+        else
+        {
+            if (!appSettings.Value.AllowAnonymousUsage)
+            {
+                logger.LogWarning("Anonymous user submitted a document with ID: '{Id}'.", model.DocumentId);
+                return Challenge();
+            }
+
+            // If the user is not authenticated, just show the result.
+            logger.LogInformation(
+                "An anonymous user submitted a document with ID: '{Id}'. It was not saved to the database.",
+                model.DocumentId);
+            model.OutputHtml = mtohService.ConvertMarkdownToHtml(model.InputMarkdown);
+            return this.StackView(model);
+        }
+    }
+
+    
+    ... other methods ...
+```
+
+其它 HomeController 的方法省略。这些方法都是只有已经登录的用户才能访问的，它们已经使用 `[Authorize]` 特性进行了保护。无需我们额外添加配置检查。
+
+## 7.3 - 测试新的配置项目
+
+接下来，我们可以测试一下这个新的配置项。使用下面的命令来启动项目：
+
+```bash title="使用新的配置项启动项目"
+cd ./src/MyOrg.MarkToHtml
+AppSettings__AllowAnonymousUsage=false dotnet run
+```
+
+然后打开浏览器，访问 `http://localhost:5000`，我们会注意到，如果注销掉当前用户，则首页已经无法访问了，应用会自动跳转到登录页面。
