@@ -1,5 +1,7 @@
 # Aiursoft Template Tutorial - Step 7 - 增加全新的配置项目，并支持环境变量
 
+![configuration](./assets/configuration.png)
+
 作为站长，有一些应用的配置可能默认配置并不能满足。我们需要允许管理员自己可以调整一些配置项目，来改变应用的默认行为，例如：
 
 * 允许或禁止注册新用户。
