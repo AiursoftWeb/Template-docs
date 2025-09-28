@@ -39,7 +39,7 @@ public class BadWordFilterService : ISingletonDependency
             return false;
         }
 
-        return _badWords.Any(text.Contains);
+        return _badWords.Any(badWord => text.Contains(badWord, StringComparison.OrdinalIgnoreCase));
     }
 }
 ```
