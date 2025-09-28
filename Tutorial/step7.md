@@ -313,3 +313,11 @@ AppSettings__AllowAnonymousUsage=false dotnet run
 ```
 
 然后打开浏览器，访问 `http://localhost:5000`，我们会注意到，如果注销掉当前用户，则首页已经无法访问了，应用会自动跳转到登录页面。
+
+## 结语
+
+到此为止，我们已经完成了 Aiursoft Template 的第七步教程。在这个步骤中，我们学习了如何添加一个新的配置项目，并在代码中使用它来改变应用的行为。
+
+同时，我们也了解了 ASP.NET Core 的配置系统，以及如何使用 `appsettings.json` 文件和环境变量来配置应用。
+
+这将为我们将来在 `Docker` 中部署应用，以及在生产环境中灵活配置应用打下坚实的基础。
