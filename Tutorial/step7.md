@@ -88,6 +88,8 @@ Aiursoft Template 使用 ASP.NET Core 自带的配置系统。配置系统允许
 
     在上面的例子中，即使我们把 `appsettings.json` 文件中的 `AppSettings:Local:AllowRegister` 设置为 `true`，但是只要我们设置了环境变量 `AppSettings__Local__AllowRegister` 为 `false`，注册功能依然会被禁止。
 
+    因此，在生产环境，尤其是 Docker 部署中，我们推荐全部使用环境变量来配置应用，而不是直接修改配置文件。
+
 这一次，使用下面的命令来启动项目：
 
 ```bash
