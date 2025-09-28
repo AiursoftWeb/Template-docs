@@ -105,7 +105,7 @@ AppSettings__Local__AllowRegister=false dotnet run
 
 在实际生产中，我们推荐使用环境变量来配置，这样方便版本控制我们的配置信息。
 
-## 7.2 - 添加一个新的配置项目
+## Step 7.2 - 添加一个新的配置项目
 
 上面的例子中，我们演示了一个已经被应用程序支持好的配置项目 `AppSettings:Local:AllowRegister`，但是如果我们需要全新添加一个配置项目呢？
 
@@ -303,7 +303,7 @@ public class HomeController(
 
 其它 HomeController 的方法省略。这些方法都是只有已经登录的用户才能访问的，它们已经使用 `[Authorize]` 特性进行了保护。无需我们额外添加配置检查。
 
-## 7.3 - 测试新的配置项目
+## Step 7.3 - 测试新的配置项目
 
 接下来，我们可以测试一下这个新的配置项。使用下面的命令来启动项目：
 
