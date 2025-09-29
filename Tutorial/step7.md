@@ -179,7 +179,7 @@ public class HomeController(
 
 然后在 `Index` 方法中，检查这个配置项，如果发现应用程序禁止匿名使用，并且当前用户未登录，则直接返回 `Challenge()` 结果，强制用户登录：
 
-!!! tip "Change() 方法是什么？"
+!!! tip "Challenge() 方法是什么？"
 
     `Challenge()` 方法会触发认证中间件，通常会将用户重定向到登录页面。如果你使用的是 OIDC 认证，则会将用户重定向到 OIDC 提供者的登录页面。
 
