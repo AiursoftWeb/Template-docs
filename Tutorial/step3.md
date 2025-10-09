@@ -204,7 +204,7 @@ public class HomeController(
 
     它有三重等级，第一级是始终展开的，多个标签的组，称作 `NavGroup`。
     
-    第二级是可以折叠的，多个标签的组，称作 `CascadedLinksGroup`。它也具有图标。
+    第二级是可以折叠的，多个标签的组，称作 `CascadedLinksGroup`。它是唯一具有图标的一个层级。会展现为一个可折叠的菜单。用户点击图标或名称即可展开或折叠它。
     
     第三级是具体的链接，称作 `Link`。
 

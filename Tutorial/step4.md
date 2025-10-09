@@ -212,7 +212,7 @@ dotnet tool install --global dotnet-ef
 
 ### Step 4.3.1 为 SQLite 创建迁移
 
-然后，我们需要为 SQLite 和 MySQL 分别创建迁移。为 Sqlite 创建迁移时，需要确保 `./src/MyOrg.MarkToHtml/appsettings.json` 中的 `ConnectionStrings.DbType` 设置为 `Sqlite`，并且 `DefaultConnection` 指向一个 SQLite 数据库文件，例如：
+然后，我们需要为 SQLite 和 MySQL 分别创建迁移。为 SQLite 创建迁移时，需要确保 `./src/MyOrg.MarkToHtml/appsettings.json` 中的 `ConnectionStrings.DbType` 设置为 `Sqlite`，并且 `DefaultConnection` 指向一个 SQLite 数据库文件，例如：
 
 ```json title="修改 appsettings.json"
 {
@@ -227,7 +227,7 @@ dotnet tool install --global dotnet-ef
 
 然后，运行以下命令来创建迁移：
 
-```bash title="为 Sqlite 创建迁移"
+```bash title="为 SQLite 创建迁移"
 cd ./src/MyOrg.MarkToHtml.Sqlite/
 dotnet ef migrations add AddMarkdownDocumentsTable --context "SqliteContext" -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
 ```
