@@ -149,6 +149,8 @@ else
 
 ## Step 5.2 创建编辑文档的页面
 
+### Step 5.2.1 创建 Edit 方法
+
 在 `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` 文件中，添加以下代码：
 
 ```csharp title="HomeController.cs 的 Edit 方法"
@@ -185,9 +187,13 @@ public async Task<IActionResult> Edit([Required][FromRoute] Guid id, [FromQuery]
 
 我们之前的 `Index` 已经可以将已经认证的用户的文档保存到数据库中，并且在保存后重定向到 `Edit` 方法来渲染文档。因此，我们可以复用 `Index` 视图来显示编辑页面。
 
+### Step 5.2.2 调整 Index 视图
+
 考虑到创建和编辑我们共享了同一个视图，我们在 `IndexViewModel` 中添加了一个 `IsEditing` 属性，用于区分当前是创建还是编辑状态。也添加了一个 `SavedSuccessfully` 属性，用于在编辑页面显示保存成功的提示。
 
-例如，我们可以在编辑模式下，除了允许编辑文档外，还可以允许用户编辑文档的标题。我们可以在视图中添加一个输入框，用于编辑标题。
+例如，我们可以在编辑模式下，除了允许编辑文档外，还可以允许用户编辑文档的标题。我们可以在视图中添加一个输入框，用于编辑标题。也在编辑的页面上，添加一个隐藏的输入控件，以便在提交时携带 `DocumentId`。其中，`DocumentId` 用于标识用户的文档。对于每个新 GET 请求，我们每次都会生成一个新的 ID。为了确保反复提交编辑过程中这个Id不会变，我们需要在视图中将其作为隐藏字段提交。
+
+这样我们可以构建出一个非常理想的体验：用户可以创建新的文档，并且在编辑页面中，可以看到当前文档的标题和内容，并且可以修改它们。每次第一次提交时，会创建一个新的文档，并生成一个新的 `DocumentId`。之后每次编辑提交时，都会携带这个 `DocumentId`，以便服务器端能够识别这是哪个文档，并更新它的内容和标题。
 
 修改 `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` 文件，在左侧的 Markdown 输入区域上方，添加以下代码：
 
@@ -221,18 +227,6 @@ public async Task<IActionResult> Edit([Required][FromRoute] Guid id, [FromQuery]
 </div>
 ```
 
-这样，在编辑模式下，用户可以看到一个标题输入框，可以为他们的文档添加一个标题。
-
-!!! note "现在可以运行应用以及测试功能了。"
-
-    现在，你可以运行应用，注册一个新用户，并测试创建和编辑文档的功能。你应该能够创建新的文档，并编辑它们的标题和内容。
-
-    每次编辑后，地址栏的路径都会变成例如 `/Home/Edit/{DocumentId}` 的形式，表示你正在编辑一个已经存在的文档。
-
-    同时，检查数据库中的 `MarkdownDocuments` 表，应该能够看到你创建和编辑的文档已经被保存到数据库中。
-
-其中，`DocumentId` 用于标识用户的文档。对于每个新 GET 请求，我们每次都会生成一个新的 ID。为了确保反复提交编辑过程中这个Id不会变，我们需要在视图中将其作为隐藏字段提交。
-
 !!! tip "<input type="hidden" /> 的作用"
 
     `<input type="hidden" />` 标签用于在表单中存储一些不需要用户直接编辑但需要提交到服务器的数据。在这里，我们使用它来存储 `DocumentId`，以便在用户提交表单时，服务器能够识别这是哪个文档。
@@ -246,6 +240,46 @@ public async Task<IActionResult> Edit([Required][FromRoute] Guid id, [FromQuery]
     ```
 
     在上面的例子中，如果 `Model.IsEditing` 为真，表示当前是编辑模式，我们就会渲染一个隐藏的输入字段，绑定到 `DocumentId` 属性。因为编辑模式下必须确定正在编辑的是哪个文档，所以我们需要将 `DocumentId` 一起提交到服务器。
+
+这样，在编辑模式下，用户可以看到一个标题输入框，可以为他们的文档添加一个标题。
+
+同时，我们在表单的顶部，添加一个提示框，用于显示保存成功的消息。将以下代码添加到 `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` 文件，紧接在 `<form>` 标签之前：
+
+```html title="Index.cshtml 显示保存成功的提示"
+... Other code ...
+</div>
+
+@if (Model.SavedSuccessfully)
+{
+    <div class="alert alert-success alert-dismissible" role="alert">
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="d-flex">
+            <div class="alert-icon pe-3">
+                <i class="align-middle" data-lucide="alert-triangle"></i>
+            </div>
+            <div class="alert-message">
+                <strong>@Localizer["Success!"]</strong>
+                @Localizer["Document updated successfully."]
+            </div>
+        </div>
+    </div>
+}
+
+<form asp-action="Index" method="post" id="markdown-form">
+... Other code ...
+```
+
+这样，如果用户是从编辑页面保存后重定向回来的，就会看到一个绿色的提示框，告诉他们文档已经成功保存。
+
+### Step 5.2.3 测试功能
+
+!!! note "现在可以运行应用以及测试功能了。"
+
+    现在，你可以运行应用，注册一个新用户，并测试创建和编辑文档的功能。你应该能够创建新的文档，并编辑它们的标题和内容。
+
+    每次编辑后，地址栏的路径都会变成例如 `/Home/Edit/{DocumentId}` 的形式，表示你正在编辑一个已经存在的文档。
+
+    同时，检查数据库中的 `MarkdownDocuments` 表，应该能够看到你创建和编辑的文档已经被保存到数据库中。
 
 这样在每次提交的时候，都会将 `DocumentId` 一起提交到服务器端。否则每次用户提交都会生成一个新的 ID，导致无法更新之前的文档，而不停地创建新文档。
 
