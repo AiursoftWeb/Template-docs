@@ -54,6 +54,7 @@ public async Task<IActionResult> Index(IndexViewModel model)
             model.DocumentId);
         var documentInDb = await context.MarkdownDocuments
             .FirstOrDefaultAsync(d => d.Id == model.DocumentId && d.UserId == userId);
+        var isExistingDocument = documentInDb != null;
         if (documentInDb != null)
         {
             logger.LogInformation("Updating the document with ID: '{Id}'.", model.DocumentId);
@@ -75,7 +76,7 @@ public async Task<IActionResult> Index(IndexViewModel model)
         }
 
         await context.SaveChangesAsync();
-        return RedirectToAction(nameof(Edit), new { id = model.DocumentId });
+        return RedirectToAction(nameof(Edit), new { id = model.DocumentId, saved = isExistingDocument });
     }
     else
     {
@@ -89,6 +90,8 @@ public async Task<IActionResult> Index(IndexViewModel model)
 }
 ```
 
+### Step 5.1.1 更新视图模型
+
 当然，完成上面的修改后，你会注意到几个错误，包括 `model.DocumentId`、`model.Title` 找不到等。别担心，我们立刻去更新 `IndexViewModel`。
 
 编辑文件 `./src/MyOrg.MarkToHtml/Models/HomeViewModels/IndexViewModel.cs`，添加必要的属性：
@@ -101,27 +104,18 @@ public bool IsEditing { get; init; }
 
 [MaxLength(100)]
 public string? Title { get; set; }
+
+public bool SavedSuccessfully { get; set; }
 ```
 
-其中，`DocumentId` 用于标识用户的文档。对于每个新 GET 请求，我们每次都会生成一个新的 ID。为了确保反复提交编辑过程中这个Id不会变，我们需要在视图中将其作为隐藏字段提交。
-
-修改 `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml`，在 `<form>` 标签内添加以下代码：
-
-```html title="Index.cshtml"
-<form asp-action="Index" method="post" id="markdown-form">
-    <input type="hidden" asp-for="DocumentId" />
-    ... Other existing code ...
-```
-
-这样在每次提交的时候，都会将 `DocumentId` 一起提交到服务器端。
-
-### Step 5.1.1 理解保存和更新逻辑 (可选)
+### Step 5.1.2 理解保存和更新逻辑 (可选)
 
 阅读服务端的代码，其中核心逻辑是：
 
 ```csharp title="HomeController.cs 的 Index 方法"
 var documentInDb = await context.MarkdownDocuments
     .FirstOrDefaultAsync(d => d.Id == model.DocumentId && d.UserId == userId);
+var isExistingDocument = documentInDb != null;
 if (documentInDb != null)
 {
     logger.LogInformation("Updating the document with ID: '{Id}'.", model.DocumentId);
@@ -159,7 +153,7 @@ else
 
 ```csharp title="HomeController.cs 的 Edit 方法"
 [Authorize]
-public async Task<IActionResult> Edit([Required][FromRoute]Guid id)
+public async Task<IActionResult> Edit([Required][FromRoute] Guid id, [FromQuery] bool? saved = false)
 {
     var userId = userManager.GetUserId(User);
     var document = await context.MarkdownDocuments.FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
@@ -175,7 +169,8 @@ public async Task<IActionResult> Edit([Required][FromRoute]Guid id)
         Title = document.Title,
         InputMarkdown = document.Content ?? string.Empty,
         OutputHtml = mtohService.ConvertMarkdownToHtml(document.Content ?? string.Empty),
-        IsEditing = true
+        IsEditing = true,
+        SavedSuccessfully = saved ?? false
     };
 
     return this.StackView(model: model, viewName: nameof(Index)); // Reuse the Index view for editing.
@@ -190,7 +185,7 @@ public async Task<IActionResult> Edit([Required][FromRoute]Guid id)
 
 我们之前的 `Index` 已经可以将已经认证的用户的文档保存到数据库中，并且在保存后重定向到 `Edit` 方法来渲染文档。因此，我们可以复用 `Index` 视图来显示编辑页面。
 
-考虑到创建和编辑我们共享了同一个视图，我们在 `IndexViewModel` 中添加了一个 `IsEditing` 属性，用于区分当前是创建还是编辑状态。
+考虑到创建和编辑我们共享了同一个视图，我们在 `IndexViewModel` 中添加了一个 `IsEditing` 属性，用于区分当前是创建还是编辑状态。也添加了一个 `SavedSuccessfully` 属性，用于在编辑页面显示保存成功的提示。
 
 例如，我们可以在编辑模式下，除了允许编辑文档外，还可以允许用户编辑文档的标题。我们可以在视图中添加一个输入框，用于编辑标题。
 
@@ -210,6 +205,7 @@ public async Task<IActionResult> Edit([Required][FromRoute]Guid id)
             @* Add this block for editing title if in editing mode *@
             @if (Model.IsEditing)
             {
+                <input type="hidden" asp-for="DocumentId" />
                 <div class="mb-3">
                     <label asp-for="Title" class="form-label">@Localizer["Document Title (optional)"]</label>
                     <input asp-for="Title" class="form-control form-control-lg" placeholder="@Localizer["Document Title (optional)"]"/>
@@ -234,6 +230,24 @@ public async Task<IActionResult> Edit([Required][FromRoute]Guid id)
     每次编辑后，地址栏的路径都会变成例如 `/Home/Edit/{DocumentId}` 的形式，表示你正在编辑一个已经存在的文档。
 
     同时，检查数据库中的 `MarkdownDocuments` 表，应该能够看到你创建和编辑的文档已经被保存到数据库中。
+
+其中，`DocumentId` 用于标识用户的文档。对于每个新 GET 请求，我们每次都会生成一个新的 ID。为了确保反复提交编辑过程中这个Id不会变，我们需要在视图中将其作为隐藏字段提交。
+
+!!! tip "<input type="hidden" /> 的作用"
+
+    `<input type="hidden" />` 标签用于在表单中存储一些不需要用户直接编辑但需要提交到服务器的数据。在这里，我们使用它来存储 `DocumentId`，以便在用户提交表单时，服务器能够识别这是哪个文档。
+
+    ```html title="Index.cshtml"
+    @if (Model.IsEditing)
+    {
+        <input type="hidden" asp-for="DocumentId" />
+        ...
+    }
+    ```
+
+    在上面的例子中，如果 `Model.IsEditing` 为真，表示当前是编辑模式，我们就会渲染一个隐藏的输入字段，绑定到 `DocumentId` 属性。因为编辑模式下必须确定正在编辑的是哪个文档，所以我们需要将 `DocumentId` 一起提交到服务器。
+
+这样在每次提交的时候，都会将 `DocumentId` 一起提交到服务器端。否则每次用户提交都会生成一个新的 ID，导致无法更新之前的文档，而不停地创建新文档。
 
 当然，最核心的功能，也就是查看自己的文档列表，仍然没有实现。我们将在下一步中实现这个功能。
 
