@@ -232,7 +232,7 @@ public class HomeController(
         LinkOrder = 1)]
     public IActionResult Index()
     {
-        if (!appSettings.Value.AllowAnonymousUsage)
+        if (!User.Identity!.IsAuthenticated && !appSettings.Value.AllowAnonymousUsage)
         {
             logger.LogWarning("Anonymous user trying to access the home page. But it is not allowed.");
             return Challenge();
