@@ -47,7 +47,7 @@ LIMIT 10 OFFSET 10;
 
 接下来，我们准备使用 Entity Framework Core 来创建一个新的数据模型类，叫做 `MarkdownDocument`，用于存储用户的 markdown 文档。其存储在表 `MarkdownDocuments` 中。
 
-为了创建这个数据模型，我们直接修改 `./src/MyOrg.MarkToHtml/Entities/User.cs` 文件：
+为了创建这个数据模型，我们直接修改 `./src/MyOrg.MarkToHtml.Entities/User.cs` 文件：
 
 添加必要的 using 语句：
 
