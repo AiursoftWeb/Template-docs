@@ -60,7 +60,7 @@ if (!await db.Users.AnyAsync(u => u.UserName == "admin"))
 
     并不会，也不应当有任何业务逻辑，强制要求一个用户必须属于 `Administrators` 角色才能执行某些操作。权限系统是完全基于权限 `Claim` 来控制的，而不是 `Role`。
 
-和 `User` `Role` 不同，`Claim` 并不直接存储在数据库中，而是存储在代码中。你可以在 `./src/MyOrg.MarkToHtml/AppPermissions.cs` 文件中找到所有的权限定义。
+和 `User` `Role` 不同，`Claim` 并不直接存储在数据库中，而是存储在代码中。你可以在 `./src/MyOrg.MarkToHtml/Authorization/AppPermissions.cs` 文件中找到所有的权限定义。
 
 我们也可以修改上述文件，以添加新的权限。
 
@@ -80,9 +80,9 @@ if (!await db.Users.AnyAsync(u => u.UserName == "admin"))
 
     你可能会好奇，基础功能（例如创建、编辑、删除自己的文档）是否也需要设计权限？在我们的例子中，我们允许了所有用户(甚至匿名用户)创建文档，因此这类可以无条件服务的用例不需要权限。
 
-修改文件 `./src/MyOrg.MarkToHtml/AppPermissionNames.cs`，添加新的权限：
+修改文件 `./src/MyOrg.MarkToHtml/Authorization/AppPermissionNames.cs`，添加新的权限：
 
-```csharp title="AppPermissions.cs 新增权限"
+```csharp title="AppPermissionNames.cs 新增权限"
 // Document Management
 public const string CanReadAllDocuments = nameof(CanReadAllDocuments);
 public const string CanDeleteAnyDocument = nameof(CanDeleteAnyDocument);
@@ -91,7 +91,7 @@ public const string CanEditAnyDocument = nameof(CanEditAnyDocument);
 
 修改后，这个文件应该如下所示：
 
-```csharp title="AppPermissions.cs 完整代码"
+```csharp title="AppPermissionNames.cs 完整代码"
 namespace MyOrg.MarkToHtml.Authorization;
 
 /// <summary>
@@ -123,7 +123,7 @@ public static class AppPermissionNames
 }
 ```
 
-接下来，修改文件 `./src/MyOrg.MarkToHtml/AppPermissions.cs`，将新的权限添加到权限列表中：
+接下来，修改文件 `./src/MyOrg.MarkToHtml/Authorization/AppPermissions.cs`，将新的权限添加到权限列表中：
 
 ```csharp title="AppPermissions.cs 新增三个权限"
 new(AppPermissionNames.CanReadAllDocuments,
@@ -268,7 +268,7 @@ namespace MyOrg.MarkToHtml.Controllers;
 /// </summary>
 [Authorize]
 public class AdminController(
-    IStringLocalizer<ManageController> localizer,
+    IStringLocalizer<AdminController> localizer,
     UserManager<User> userManager,
     TemplateDbContext context)
     : Controller
