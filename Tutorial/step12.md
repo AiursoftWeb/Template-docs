@@ -36,3 +36,21 @@ WHERE NOT EXISTS (
 !!! note "已经登录的用户"
 
     如果用户已经登录过一次，那么需要用户重新登录一次，才能获得新的权限。
+
+你可能还需要删除 `Administrators` 角色。当然，删除它之前，我们需要先撤回它的所有权限。可以使用下面的 SQL 语句来完成这个任务：
+
+```sql
+-- 步骤 1: 查询名为 'Administrators' 的角色的 ID，并将其存储在一个变量中
+SET @adminRoleId = (SELECT Id FROM AspNetRoles WHERE Name = 'Administrators');
+
+-- 步骤 2: 删除 'Administrators' 角色的所有权限
+DELETE FROM AspNetRoleClaims
+WHERE RoleId = @adminRoleId;
+-- 步骤 3: 删除 'Administrators' 角色本身
+DELETE FROM AspNetRoles
+WHERE Id = @adminRoleId;
+```
+
+执行完上面的 SQL 语句以后，`Administrators` 这个角色就被删除了。
+
+这样，我们就完成了给 OIDC 用户分配权限的任务，并且我们企业中特定的组已经可以安全的开始管理和使用这个系统了。
