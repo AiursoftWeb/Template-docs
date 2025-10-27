@@ -9,8 +9,8 @@ edit_uri: ""
 use_directory_urls: true
 docs_dir: .
 theme:
-  logo: Assets/logo_128.png
-  favicon: Assets/logo_128.png
+  logo: Assets/logo.png
+  favicon: Assets/logo.png
   font: false
   name: material
   language: en
@@ -56,7 +56,7 @@ theme:
         name: Switch to system preference
 
 extra:
-  homepage: https://template.anduinos.com
+  homepage: https://template.aiursoft.com
   icon:
     annotation: material/arrow-right-circle 
     admonition:
