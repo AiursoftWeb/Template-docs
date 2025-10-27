@@ -9,8 +9,8 @@ edit_uri: ""
 use_directory_urls: true
 docs_dir: .
 theme:
-  logo: Assets/logo.png
-  favicon: Assets/logo.png
+  logo: Assets/logo.svg
+  favicon: Assets/logo.svg
   font: false
   name: material
   language: en
