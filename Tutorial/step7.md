@@ -54,8 +54,8 @@ Aiursoft Template 使用 ASP.NET Core 自带的配置系统。配置系统允许
     "DefaultRole": "",
     "PersistsSignIn": false,
     "OIDC": {
-      // https://auth.aiursoft.cn/application/o/template
-      "Authority": "https://auth.aiursoft.cn/application/o/template",
+      // https://auth.aiursoft.com/application/o/template
+      "Authority": "https://auth.aiursoft.com/application/o/template",
       "ClientId": "",
       "ClientSecret": "",
       "RolePropertyName": "groups",
