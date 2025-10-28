@@ -3,7 +3,7 @@ site_description: The official documentation for Aiursoft Project Template.
 
 # Repository
 repo_name: aiursoft/template-docs
-repo_url: https://gitlab.aiursoft.cn/aiursoft/template-docs
+repo_url: https://gitlab.aiursoft.com/aiursoft/template-docs
 edit_uri: ""
 
 use_directory_urls: true
