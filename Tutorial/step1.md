@@ -8,9 +8,9 @@
 
 !!! tip "Aiursoft Template 可以在几乎所有主流操作系统上运行"
 
-    如果你不想使用 AnduinOS，你也可以在任何支持 .NET 9.0 的操作系统上进行开发，例如 Windows、macOS 或其他 Linux 发行版。
+    如果你不想使用 AnduinOS，你也可以在任何支持 .NET 10.0 的操作系统上进行开发，例如 Windows、macOS 或其他 Linux 发行版。
 
-在开始之前，请确保你已经安装了 `git`、`.NET 9.0 SDK` 和 `docker`。在 AnduinOS 上，你可以使用以下命令安装这些工具：
+在开始之前，请确保你已经安装了 `git`、`.NET 10.0 SDK` 和 `docker`。在 AnduinOS 上，你可以使用以下命令安装这些工具：
 
 ```bash title="在 AnduinOS 上安装必要的工具"
 sudo apt install -y git dotnet9 docker.io
