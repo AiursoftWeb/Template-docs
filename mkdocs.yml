@@ -120,6 +120,9 @@ plugins:
 nav:
   - 主页:
     - 欢迎: README.md
+  - 特性:
+    - 视图开发实践: Features/Views.md
+    - 模型校验: Features/Validation.md
   - 快速入门:
     - 开始之前: Tutorial/before.md
     - 第一步 - 创建新项目: Tutorial/step1.md
