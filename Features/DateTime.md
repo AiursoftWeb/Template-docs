@@ -36,7 +36,7 @@ public class MarkdownDocument
 
 请参考以下 `History.cshtml` 的实现：
 
-```html title="Views/Home/History.cshtml" {47-49}
+```html
 @using Aiursoft.WebTools
 @model MyOrg.MarkToHtml.Models.HomeViewModels.HistoryViewModel
 @inject IViewLocalizer Localizer
