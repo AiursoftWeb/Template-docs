@@ -98,6 +98,99 @@ public IActionResult Login()
 
 -----
 
+# 🧬 强制规范：ViewModel 的继承与初始化
+
+在使用 `this.StackView()` 或 `this.SimpleView()` 时，你可能会产生疑问：*“注入器把侧边栏、用户信息这些数据填到哪里去了？”*
+
+答案是：填到了 **ViewModel 的基类属性** 中。
+
+为了让这套机制跑通，你定义的每一个用于页面的 ViewModel 都必须遵守以下两个**铁律**：
+
+## 1\. 必须继承 `UiStackLayoutViewModel`
+
+Layout 文件（`Layout.cshtml`）期望的模型类型是 `UiStackLayoutViewModel`。如果你的模型没有继承它，Razor 引擎在渲染 Layout 时会因为找不到 `Sidebar`、`Navbar`、`Theme` 等属性而报错，或者注入器无法工作。
+
+## 2\. 必须在构造函数中初始化 `PageTitle`
+
+不要在 Controller 的 Action 里零零散散地赋值 `model.PageTitle = "..."`。这会让代码难以维护。
+**最佳实践**是：在 ViewModel 被创建的那一刻（构造函数），它就应该知道自己的名字。
+
+### ✅ 标准代码示范
+
+请看以下标准实现：
+
+```csharp
+using Aiursoft.UiStack.Layout; // 引用基类命名空间
+
+// 1. 继承 UiStackLayoutViewModel
+public class RenderRepoViewModel : UiStackLayoutViewModel
+{
+    // 2. 在构造函数中强制要求传入或定义 PageTitle
+    public RenderRepoViewModel(string repoName)
+    {
+        // PageTitle 将直接显示在浏览器标签页上 (e.g., "MyRepo | Warp")
+        // 也会被注入器用于生成面包屑导航（如果有的话）
+        PageTitle = repoName;
+    }
+
+    // 你的业务属性
+    public required RepoStats Stats { get; init; }
+}
+```
+
+### ❌ 错误示范
+
+```csharp
+// 错误：没有继承基类，Layout 无法渲染导航栏，Injector 会抛出异常或无效
+public class WrongViewModel 
+{
+    public string PageTitle { get; set; } // 即使你手写了这个属性也没用，基类里有特定逻辑
+}
+
+// 错误：在 Controller 里才想起来起名字
+public class LazyViewModel : UiStackLayoutViewModel
+{
+    // 空的构造函数，导致 PageTitle 默认为 null
+}
+
+// Controller
+public IActionResult Index() 
+{
+    var model = new LazyViewModel();
+    model.PageTitle = "Index"; // 不要这样做！逻辑分散了。
+    return this.StackView(model);
+}
+```
+
+## 💡 为什么要这样做？
+
+1.  **类型安全**：继承基类确保了你的模型永远拥有 Layout 所需的一切属性（`Sidebar`, `Navbar`, `Footer`, `Theme` 等）。
+2.  **职责单一**：Controller 只负责取数据（比如从数据库拿 `RepoStats`），而 ViewModel 负责定义“我是谁”（比如“我是 Repo 详情页”）。
+3.  **自动化翻译**：记得 `ViewModelArgsInjector` 里的代码吗？
+    ```csharp
+    toInject.PageTitle = localizer[toInject.PageTitle ?? "View"];
+    ```
+    它会读取你在构造函数里设置的 `PageTitle` 并自动尝试进行多语言翻译。如果你不设置，它就只能显示默认的 "View"，非常不专业。
+
+遵循此规范，你的 Controller 代码将变得异常清爽：
+
+```csharp
+[Route("repo/{repoName}")]
+public IActionResult Overview(string repoName)
+{
+    // 实例化时，标题自动确立
+    var model = new RenderRepoViewModel(repoName)
+    {
+        Stats = _repoService.GetStats(repoName)
+    };
+
+    // 也就是一行代码的事，所有 UI 组件全部就绪
+    return this.StackView(model);
+}
+```
+
+-----
+
 ## ⚡ 总结与速查表
 
 | 特性 | `return View()` | `this.SimpleView()` | `this.StackView()` |
