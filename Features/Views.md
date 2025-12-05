@@ -23,12 +23,6 @@
 
 ## 🛠️ 为什么？发生了什么？
 
-让我们看一眼底层的 `Layout.cshtml`。它依赖于一个庞大的 ViewModel —— `UiStackLayoutViewModel`。
-
-````html
-<html data-bs-theme="@Model.Theme"> ...
-@if (Model.Sidebar != null) { <vc:sidebar ... /> } @if (Model.Navbar != null) { <vc:navbar ... /> }   ```
-
 当你调用标准的 `return View(model)` 时，你只传递了你自己的业务数据。**Layout 所需的这些 `Sidebar`, `Navbar`, `Theme` 全是 `null`。**
 
 ### 正确的流程：Inject（注入）
