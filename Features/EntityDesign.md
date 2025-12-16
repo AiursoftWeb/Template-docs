@@ -46,12 +46,8 @@
 
   * *理由*：在 `new Entity()` 时我们通常只赋值 ID 而不赋值对象，声明为可空是为了满足 C\# 编译器的初始化检查，避免虚假的警告。
 
-**2.4 禁止 Attribute 冲突**
-禁止在可空类型（`?`）上使用 `[NotNull]`。
-
-  * 如果业务逻辑上该字段允许为空，使用 `string?`。
-  * 如果业务逻辑上该字段不允许为空，使用 `string` 或 `required string`。
-  * *导航属性特例*：如 2.3 所述，导航属性必须是 `Type?`，且不得标记 `[NotNull]`。
+**2.4 导航属性必须 NotNull**
+所有**导航引用属性**必须被 `[NotNull]` 修饰。
 
 **2.5 序列化屏蔽**
 所有**导航引用属性**必须被 `[Newtonsoft.Json.JsonIgnore]` 修饰（防止死循环）。
@@ -67,14 +63,12 @@
 > ```csharp
 > // 外键 ID (必填)
 > public required Guid UserId { get; set; }
-> ```
-
-> // 导航引用 (必须可空，禁止 virtual，禁止 NotNull)
+>
+> // 导航引用 (必须可空，必须 NotNull，禁止 virtual)
 > [JsonIgnore]
 > [ForeignKey(nameof(UserId))]
-> public User? User { get; init; }
->
-> ```
+> [NotNull]
+> public User? User { get; set; }
 > ```
 
 -----
@@ -159,12 +153,12 @@ public class TemplateEntity
     public required Guid ParentId { get; set; }
 
     // [规则 2.3, 2.4, 2.5, 2.6] 
-    // 导航引用：Type?, JsonIgnore, ForeignKey
+    // 导航引用：Type?, JsonIgnore, ForeignKey, NotNull
     // 严禁 virtual (禁用延迟加载)
-    // 严禁 [NotNull] (避免编译器歧义)
     [JsonIgnore]
     [ForeignKey(nameof(ParentId))]
-    public ParentEntity? Parent { get; init; }
+    [NotNull]
+    public ParentEntity? Parent { get; set; }
 
     // [规则 3.1, 3.2, 3.3] 
     // 集合：IEnumerable (独裁模式), InverseProperty, new List()
