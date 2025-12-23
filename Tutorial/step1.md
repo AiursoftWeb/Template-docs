@@ -19,11 +19,8 @@ sudo apt install -y git dotnet docker.io
 必须安装 .NET 10 SDK。
 
 ```bash title="在 AnduinOS 上安装 .NET 10"
-wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh && \
-chmod +x dotnet-install.sh && \
-sudo ./dotnet-install.sh --channel 10.0 --install-dir /usr/share/dotnet && \
-sudo ln -s /usr/share/dotnet/dotnet /usr/bin/dotnet && \
-rm dotnet-install.sh
+sudo apt update
+sudo apt install dotnet10 -y
 ```
 
 安装 git 后，你必须配置你的用户名和邮箱：
