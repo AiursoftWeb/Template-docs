@@ -1,25 +1,18 @@
-这是为您准备的开发框架文档，专注于文件上传子系统的集成与使用。
+这是为您整合了所有更新内容（包括**存储架构**与新的**ViewModel安全校验**最佳实践）的完整开发文档。
+
+文档结构已重新梳理，以保证逻辑连贯性（后端集成顺延至第 5 章节）。
 
 ---
 
-# 文件存储与上传模块使用指南
+# 文件存储与上传模块开发文档
 
 ## 1. 设计哲学
 
-本框架采用 **“两步走（Two-Step）”** 的上传策略，将“文件传输”与“业务提交”解耦。
+本框架采用 **“两步走（Two-Step）”** 的上传策略，将“文件传输”与“业务提交”解耦，并内置了自动化的隐私清洗和分级存储机制。
 
-* **传统模式**：表单直接提交 `Multipart/form-data`，业务 Controller 既要处理业务逻辑，又要处理文件流，容易导致阻塞和安全隐患。
-* **本框架模式**：
-1. **上传阶段**：前端通过 AJAX 将文件发送至专用的 `FilesController`，服务器保存文件并返回一个**内部相对路径**（String）。
-2. **提交阶段**：前端将该路径填入隐藏域，随业务表单提交给业务 Controller。
-
-
-
-**优势**：
-
-* **安全性**：文件上传与业务逻辑隔离，恶意脚本无法直接触发业务流程。
-* **体验**：支持实时上传进度条、拖拽上传。
-* **性能**：业务接口仅需处理轻量级的字符串，不再处理繁重的文件流。
+* **隔离性**：上传动作与业务逻辑分离。文件上传后仅作为“孤儿资源”存在，只有提交业务表单后才产生关联。
+* **安全性**：默认去除图片 EXIF 隐私信息，防止路径遍历攻击，文件名自动哈希/重命名。
+* **扩展性**：通过 URL 路由动态定义存储桶（Subfolder），无需修改后端代码即可支持新的业务场景。
 
 ---
 
@@ -29,33 +22,92 @@
 sequenceDiagram
     participant User as 用户
     participant Browser as 前端组件
-    participant FilesCtrl as FilesController (通用)
-    participant BizCtrl as 业务Controller (如Manage)
+    participant FilesCtrl as FilesController (网关)
+    participant FS as 文件系统 (/data)
+    participant BizCtrl as 业务Controller
     participant DB as 数据库
 
     Note over User, Browser: 第一步：文件上传
     User->>Browser: 拖拽/选择文件
-    Browser->>FilesCtrl: AJAX Post (IFormFile)
-    FilesCtrl-->>Browser: 返回路径字符串 (例: "2025/12/user.jpg")
-    Browser->>Browser: 更新进度条 & 填充隐藏Input
+    Browser->>FilesCtrl: POST /upload/avatar (带文件流)
+    FilesCtrl->>FS: 写入 /data/Workspace/avatar/...
+    FilesCtrl-->>Browser: 返回路径 "avatar/2025/12/24/file.jpg"
+    Browser->>Browser: 更新进度条 & 填充 hidden input
 
     Note over User, Browser: 第二步：业务提交
     User->>Browser: 点击“保存”按钮
-    Browser->>BizCtrl: Form Post (包含路径字符串)
+    Browser->>BizCtrl: POST 表单 (含路径字符串)
     BizCtrl->>BizCtrl: 校验路径有效性 & 业务逻辑
-    BizCtrl->>DB: 存储路径字符串
+    BizCtrl->>DB: 关联路径字符串与用户ID
 
 ```
 
 ---
 
-## 3. 前端集成 (UI层)
+## 3. 存储架构与部署 (Storage Architecture)
+
+本系统对文件系统的利用高度结构化，支持 Docker 容器化部署的数据持久化。
+
+### 3.1 磁盘目录布局
+
+无论是在开发环境（默认 `/tmp/data`）还是生产环境（Docker 默认 `/data`），文件系统都遵循以下树状结构：
+
+```text
+/data (存储根目录)
+├── appsettings.json          # [配置] 持久化的运行时配置 (由 Docker Entrypoint 自动管理)
+├── app.db                    # [数据] SQLite 数据库文件 (如果是 SQLite 模式)
+│
+├── Workspace/                # [区域 A: 原始区] 存放用户上传的原始文件
+│   └── avatar/               #   └── 对应 upload-endpoint 中的 {subfolder}
+│       └── 2025/12/24/       #       └── 自动按 年/月/日 分片
+│           └── user_raw.jpg  #           └── 原始文件
+│
+├── ClearExif/                # [区域 B: 清洗区] 存放去除 GPS/相机信息后的副本
+│   └── avatar/               #   └── 目录结构与 Workspace 保持完全一致
+│       └── ...               #       └── 下载时实际上访问的是这里的文件
+│
+└── Compressed/               # [区域 C: 缓存区] 存放压缩或裁剪后的缩略图
+    └── avatar/               #   └── 目录结构与 Workspace 保持完全一致
+        └── ...               #       └── 文件名带后缀，如 user_raw_w256_square.jpg
+
+```
+
+### 3.2 动态存储桶 (Subfolder) 机制
+
+**设计亮点**：`FilesController` 本身不包含任何业务逻辑（如“头像”、“相册”），它通过路由参数 `subfolder` 实现通用的存储桶隔离。
+
+* **前端定义**：
+```html
+<vc:file-upload upload-endpoint="/upload/avatar" ... />
+<vc:file-upload upload-endpoint="/upload/proofs" ... />
+
+```
+
+
+* **后端处理**：
+Controller 接收路由 `[Route("upload/{subfolder}")]`，并将其直接透传给存储服务。这意味着增加新的业务类型（如上传“发票”），**不需要修改后端 C# 代码**，只需前端修改 Endpoint 即可。
+
+### 3.3 Docker 持久化策略
+
+在 Dockerfile 中，我们定义了特殊的启动逻辑以确保配置和数据的持久性：
+
+1. **路径映射**：生产环境强制修改配置，将 `Storage:Path` 指向 `/data`。
+2. **配置文件持久化**：
+* 容器启动时，会检查 `/data/appsettings.json` 是否存在。
+* 如果不存在（首次启动），将镜像内的默认配置复制到 `/data`。
+* 如果存在（重启），则使用 `/data` 中的配置（软链接回 app 目录）。
+
+
+
+**优势**：运维人员可以直接修改宿主机挂载目录下的 `appsettings.json` 来热更配置（如修改数据库连接串），重启容器即可生效。
+
+---
+
+## 4. 前端集成 (UI层)
 
 本框架封装了 `FileUpload` ViewComponent，无需编写 JavaScript 即可实现完整的上传交互。
 
-### 3.1 引入组件
-
-在 Razor 视图（`.cshtml`）中，使用 Tag Helper 调用组件：
+### 4.1 基础用法
 
 ```html
 <form asp-action="ChangeAvatar" method="post">
@@ -73,47 +125,24 @@ sequenceDiagram
     <button type="submit" class="btn btn-primary">保存修改</button>
 </form>
 
-@section styles {
-    <link rel="stylesheet" href="~/node_modules/dropify/dist/css/dropify.min.css" />
-    <link rel="stylesheet" href="~/styles/uploader.css" />
-}
-
-@section scripts {
-    <script src="~/node_modules/dropify/dist/js/dropify.min.js"></script>
-}
-
 ```
 
-### 3.2 参数说明
+### 4.2 参数说明
 
-| 参数 | 说明 | 示例 |
-| --- | --- | --- |
-| `asp-for` | 绑定到的 ViewModel 属性（必须是 `string` 类型）。 | `@Model.AvatarUrl` |
-| `upload-endpoint` | 文件实际上传的通用接口地址。 | `/upload/avatar` (对应 FilesController) |
-| `allowed-extensions` | 允许的文件后缀，空格分隔。 | `"jpg png pdf"` |
-| `max-size-in-mb` | 允许的最大文件大小（MB）。 | `10` |
+| 参数 | 必填 | 说明 | 对应后端逻辑 |
+| --- | --- | --- | --- |
+| `asp-for` | 是 | 绑定 ViewModel 的字符串属性。 | 存储返回的相对路径。 |
+| `upload-endpoint` | 是 | 上传接口地址。格式：`/upload/{桶名}` | 映射到磁盘 `/Workspace/{桶名}/...` |
+| `allowed-extensions` | 否 | 允许的后缀名（空格分隔）。 | 前端校验 + 后端双重校验。 |
+| `max-size-in-mb` | 否 | 最大体积 (MB)。 | 防止大文件 DoS 攻击。 |
 
 ---
 
-## 4. 后端处理 (业务层)
+## 5. 后端集成 (业务层)
 
-业务 Controller 不需要处理 `IFormFile`，只需要接收字符串路径并进行校验。
+业务 Controller 仅需接收路径字符串，但必须进行严格的安全校验。
 
-### 4.1 ViewModel 定义
-
-```csharp
-public class ChangeAvatarViewModel
-{
-    // 这里接收的是上传成功后的相对路径字符串
-    [Required]
-    public string AvatarUrl { get; set; } 
-}
-
-```
-
-### 4.2 Controller 逻辑
-
-在 Action 中，你需要完成三件事：**校验路径**、**检查文件有效性**（可选）、**保存路径**。
+### 5.1 Controller 基础逻辑
 
 ```csharp
 [HttpPost]
@@ -121,21 +150,18 @@ public async Task<IActionResult> ChangeAvatar(ChangeAvatarViewModel model)
 {
     if (!ModelState.IsValid) return View(model);
 
-    // 1. 获取文件的物理路径 (用于后续检查)
-    // 注意：GetFilePhysicalPath 内部含有防止路径遍历的安全检查
-    var absolutePath = storageService.GetFilePhysicalPath(model.AvatarUrl);
-
-    // 2. (可选) 检查文件是否为合法图片
-    // 防止用户修改后缀名绕过前端检查
-    if (!await imageProcessingService.IsValidImageAsync(absolutePath))
+    // 1. (可选) 二次安全检查：确认物理文件确实是图片
+    // GetFilePhysicalPath 包含防路径遍历检查
+    var path = storageService.GetFilePhysicalPath(model.AvatarUrl);
+    if (!await imageService.IsValidImageAsync(path))
     {
-        ModelState.AddModelError(string.Empty, "上传的文件不是有效的图片。");
+        ModelState.AddModelError("", "Invalid image file.");
         return View(model);
     }
 
-    // 3. 业务存储 (只存字符串)
+    // 2. 业务存储 (只存字符串)
     var user = await GetCurrentUserAsync();
-    user.AvatarRelativePath = model.AvatarUrl; 
+    user.AvatarRelativePath = model.AvatarUrl; // 存入如 "avatar/2025/12/24/xxx.jpg"
     await userManager.UpdateAsync(user);
 
     return RedirectToAction(nameof(Index));
@@ -143,13 +169,62 @@ public async Task<IActionResult> ChangeAvatar(ChangeAvatarViewModel model)
 
 ```
 
+### 5.2 ViewModel 最佳实践：安全校验
+
+由于业务 Controller 接收的仅仅是一个字符串路径（而非实体文件流），强类型验证变得尤为重要。通过在 ViewModel 上使用 Data Annotations，我们可以在请求进入 Controller 逻辑之前，构建第一道安全防线。
+
+**推荐代码模式：**
+
+```csharp
+public class ChangeAvatarViewModel : UiStackLayoutViewModel
+{
+    public ChangeAvatarViewModel()
+    {
+        PageTitle = "Change Avatar";
+    }
+
+    [NotNull]
+    [Display(Name = "Avatar file")]
+    [Required(ErrorMessage = "The avatar file is required.")]
+    // 核心安全逻辑：锁定存储桶
+    [RegularExpression(@"^Workspace/avatar.*", ErrorMessage = "The avatar file is invalid. Please upload it again.")]
+    [MaxLength(150)]
+    [MinLength(2)]
+    public string? AvatarUrl { get; set; }
+}
+
+```
+
+**设计意图说明：**
+
+1. **存储桶隔离 (Bucket Isolation) - `[RegularExpression]**`
+* **场景**：假设系统有一个 `/upload/chat`（私密聊天图）和 `/upload/avatar`（公开头像）。
+* **攻击向量**：恶意用户可能先上传一张私密照片到聊天系统，获得路径 `Workspace/chat/secret.jpg`，然后试图通过修改表单，将这个路径提交给“修改头像”接口，导致私密图片被作为头像公开。
+* **防御**：通过正则 `^Workspace/avatar.*`，强制要求提交的路径必须位于 `avatar` 目录下。这防止了**跨桶引用（Cross-Bucket Reference）**，确保用户只能使用专门为该业务场景上传的文件。
+
+
+2. **防止空指针与脏数据 - `[Required]**`
+* 由于前端上传是异步的，用户可能在未等待上传完成或上传失败的情况下点击提交。`[Required]` 确保了只有拿到有效 Token（路径）的请求才能进入业务流程。
+
+
+3. **数据库防护 - `[MaxLength]**`
+* 虽然是一个路径字符串，但在设计数据库字段时通常有长度限制（如 `VARCHAR(150)`）。在 ViewModel 层限制长度，可以防止超长恶意字符串导致的数据库写入异常。
+
+
+
+**校验层级 (Defense in Depth)：**
+
+* **L1 (ViewModel)**: 正则校验路径格式与归属桶（由 .NET 自动完成，速度最快）。
+* **L2 (Controller)**: `storageService.GetFilePhysicalPath` 校验路径是否存在且未越权。
+* **L3 (Service)**: `imageService.IsValidImageAsync` 校验文件头内容（Magic Number）是否为真实图片。
+
 ---
 
-## 5. 文件展示与下载
+## 6. 文件展示与下载 (API 参考)
 
-存储在数据库中的只是相对路径（如 `avatar/2023/10/01/file.jpg`），在展示时需要转换为公网可访问的 URL。
+所有图片均通过 `StorageService` 生成链接，且强制通过 `FilesController` 进行隐私处理。
 
-### 5.1 获取访问链接
+### 6.1 获取链接
 
 使用 `StorageService` 将相对路径转换为 URL：
 
@@ -160,28 +235,20 @@ public async Task<IActionResult> ChangeAvatar(ChangeAvatarViewModel model)
 
 ```
 
-### 5.2 图片动态处理与隐私保护
+### 6.2 图片动态处理与隐私保护
 
-本框架对图片资源实施 **强制隐私保护** 策略。当通过 `/download/` 接口请求图片时，服务器**永远不会返回原始上传文件**，而是返回处理后的副本。
+本框架对图片资源实施 **强制隐私保护** 策略。通过在 URL 后追加参数，可触发服务器端的即时处理（On-the-fly Processing）。
 
-| URL 形式 | 内部行为 | 结果 |
-| --- | --- | --- |
-| `/download/img.jpg` | **自动清除 EXIF** | 原分辨率、无 GPS/相机信息的纯净图片 |
-| `/download/img.jpg?w=200` | **清除 EXIF** + 缩放 | 宽 200px 的纯净图片 |
-
-这意味着你无需担心用户上传包含地理位置（GPS）的原图泄露隐私，系统会在下载层自动拦截并清洗。
-
-此外，框架内置了即时图片处理功能，支持调整大小、裁剪。只需在 URL 后追加参数即可。
-
-| 参数 | 说明 | 示例 | 效果 |
+| 参数 | 说明 | 示例 | 内部行为 |
 | --- | --- | --- | --- |
-| `w` | 宽度（像素）。高度会按比例缩放。**注意：宽度会自动向上取整至2的幂次方以防止DoS攻击。** | `?w=256` | 生成宽256px的图片 |
-| `square` | 是否裁剪为正方形。 | `?w=256&square=true` | 生成256x256的正方形头像 |
+| **无参数** | 获取原图 | `img.jpg` | **自动清除 EXIF**，从 `ClearExif` 目录返回无 GPS 信息的纯净图片。 |
+| `w` | 指定宽度 | `?w=256` | 宽度自动向上取整至 2 的幂次方（防止缓存击穿），高度按比例缩放。 |
+| `square` | 正方形裁剪 | `?w=256&square=true` | 以中心为基准裁剪正方形，通常配合 `w` 使用。 |
 
 **示例代码：**
 
 ```html
-<img src="@Storage.RelativePathToInternetUrl(Model.AvatarUrl)?w=128&square=true" 
+<img src="@Storage.RelativePathToInternetUrl(Model.AvatarUrl)?w=256&square=true" 
      class="rounded-circle" 
      alt="User Avatar" />
 
@@ -189,7 +256,7 @@ public async Task<IActionResult> ChangeAvatar(ChangeAvatarViewModel model)
 
 ---
 
-## 6. 内置服务说明 (Reference)
+## 7. 内置服务说明 (Reference)
 
 如果你需要扩展功能，可以注入以下核心服务：
 
@@ -207,20 +274,23 @@ public async Task<IActionResult> ChangeAvatar(ChangeAvatarViewModel model)
 
 * `IsValidImageAsync(path)`: 校验文件头是否为图片。
 * `ClearExifAsync(path)`: **隐私保护**，清除照片中的 GPS 等敏感信息。
-* `CompressAsync(path, width, height)`: 压缩并缓存图片。
-
-### FilesController
-
-通用的上传网关。
-
-* `/upload/{subfolder}`: 处理文件上传。
-* `/download/{path}`: 处理文件下载和图片参数解析。
 
 ---
 
-## 7. 最佳实践与注意事项
+## 8. 最佳实践与注意事项
 
-1. **隐私安全（已自动处理）**：您无需在代码中手动处理图片隐私。框架的 `FilesController` 充当了安全网关，所有流出的图片数据流均已被剥离元数据（Metadata）。
-2. **存储冗余**：由于“原图”、“无EXIF版”、“缩略图版”是分开存储的，磁盘占用会略多于文件大小本身。这是为了换取极致的读取性能（以空间换时间），避免每次请求都实时运算。
-3. **孤儿文件**：由于采用了先上传后提交的策略，如果用户上传后未提交表单，会产生“孤儿文件”。建议在系统层面部署定时任务（BackgroundService），定期清理 `Workspace` 中超过24小时且未在数据库中引用的文件。
-4. **安全性**：不要试图绕过 `StorageService` 直接操作 `System.IO.File`，否则可能导致路径遍历漏洞。始终使用框架提供的 API。
+1. **Exif 清理机制**：
+* 不要绕过 `FilesController` 直接使用静态文件服务（StaticFileMiddleware）暴露 `/data` 目录。
+* 只有通过 Controller 这一层，才能保证所有流出的图片数据流均已被剥离元数据（Metadata）。
+
+
+2. **存储冗余**：
+* 由于“原图”、“无EXIF版”、“缩略图版”是分开存储的，磁盘占用会略多于文件大小本身。这是为了换取极致的读取性能（以空间换时间）。
+
+
+3. **孤儿文件清理**：
+* 由于采用了先上传后提交的策略，如果用户上传后未提交表单，会产生“孤儿文件”。建议部署定时任务（BackgroundService），定期清理 `Workspace` 中超过24小时且未在数据库中引用的文件。
+
+
+4. **开发环境配置**：
+* 在非 Docker 环境下，默认存储路径为 `/tmp/data`。确保您的开发机有此目录的读写权限，或在 `appsettings.json` 中修改 `Storage:Path`。
