@@ -127,7 +127,7 @@ nav:
     - 文件系统管理: Features/FileStorage.md
     - 渲染日期时间: Features/DateTime.md
     - 实体建模规范: Features/EntityDesign.md
-    - 后台任务支持: Features/BackgroundTask.md
+    - 后台任务支持: Features/BackgroundJob.md
   - 快速入门:
     - 开始之前: Tutorial/before.md
     - 第一步 - 创建新项目: Tutorial/step1.md
