@@ -11,10 +11,15 @@
 * **Comprehensive Documentation:** Includes extensive documentation and practical examples to get you started quickly.
 * **Built-in User Management:** A complete solution for user authentication and profile management.
 * **Automatic dependency injection:** All dependencies are automatically registered and always available via constructor injection.
-* **Integrated File Management:** Features a built-in file management system with automatic avatar compression.
+* **Integrated File Management:** Features a built-in file management system with automatic avatar compression and privacy protection.
 * **Responsive Design:** A fully responsive layout that looks great on both desktop and mobile devices.
 * **Automatic Dark Mode:** Smart dark mode that adapts to the user's system settings.
 * **Dockerized for Easy Deployment:** Comes with Docker support for simplified and consistent deployments.
+* **Robust Integration Testing** Effortlessly write integration tests using in-memory databases, temporary file systems, built-in mocking, and real-world HTTP request simulation.
+* **Automatic Time Zone Handling** Develop exclusively in UTC while the system automatically converts and displays dates in the user's local time zone.
+* **Background Job Processing** "Fire-and-forget" support for long-running tasks (like emails or AI), featuring a GUI for queue management, parallel processing, and cancellation.
+* **Scheduled Task Management** Handle recurring jobs like cleanup and synchronization with a comprehensive GUI for monitoring execution history and logs.
+* **Smart Configuration Overrides** Supports both environment variables and database-backed settings, with automatic priority given to environment variables for seamless overrides.
 
 ## Getting Started
 
