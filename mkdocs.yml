@@ -56,6 +56,13 @@ theme:
         name: Switch to system preference
 
 extra:
+  alternate:
+    - name: 简体中文
+      link: /zh/
+      lang: zh
+    - name: English
+      link: /en/
+      lang: en
   homepage: https://template.aiursoft.com
   icon:
     annotation: material/arrow-right-circle 
@@ -94,6 +101,18 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 plugins:
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: true
+      reconfigure_material: true
+      languages:
+        - locale: zh
+          default: true
+          name: 简体中文
+          build: true
+        - locale: en
+          name: English
+          build: true
   - offline
   - same-dir
   - search
