@@ -124,7 +124,6 @@ nav:
     - 视图开发实践: Features/Views.md
     - 模型校验: Features/Validation.md
     - 接收文件: Features/SaveFile.md
-    - 文件系统管理: Features/FileStorage.md
     - 渲染日期时间: Features/DateTime.md
     - 实体建模规范: Features/EntityDesign.md
     - 后台任务支持: Features/BackgroundJob.md
