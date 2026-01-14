@@ -22,7 +22,7 @@ theme:
     # - header.autohide
     # - navigation.expand
     # - navigation.indexes
-    - navigation.instant
+    # - navigation.instant  # Incompatible with mkdocs-static-i18n language switcher
     - navigation.sections
     - navigation.tabs
     - navigation.tabs.sticky
@@ -102,7 +102,7 @@ markdown_extensions:
 
 plugins:
   - i18n:
-      docs_structure: suffix
+      docs_structure: folder
       fallback_to_default: true
       reconfigure_material: true
       languages:
@@ -113,6 +113,32 @@ plugins:
         - locale: en
           name: English
           build: true
+          nav_translations:
+            主页: Home
+            欢迎: Welcome
+            特性: Features
+            视图开发实践: View Development Best Practices
+            模型校验: Model Validation
+            接收文件: File Upload
+            渲染日期时间: DateTime Rendering
+            实体建模规范: Entity Design Guidelines
+            后台任务支持: Background Job Support
+            升级指南: Upgrade Guide
+            快速入门: Quick Start
+            开始之前: Before Starting
+            第一步 - 创建新项目: "Step 1 - Create a New Project"
+            第二步 - 添加和调试第三方库: "Step 2 - Add and Debug Third-Party Libraries"
+            第三步 - 添加全新的页面: "Step 3 - Add a New Page"
+            第四步 - 添加全新的数据模型并改变数据库结构: "Step 4 - Add a New Data Model and Modify Database Structure"
+            第五步 - 将数据保存到数据库: "Step 5 - Save Data to Database"
+            第六步 - 管理员看板和全新的权限: "Step 6 - Admin Dashboard and New Permissions"
+            第七步 - 增加全新的配置项目，并支持环境变量: "Step 7 - Add New Configuration Items with Environment Variable Support"
+            第八步 - 添加自定义验证: "Step 8 - Add Custom Validation"
+            第九步 - 允许用户在前端上传文件: "Step 9 - Allow Users to Upload Files from Frontend"
+            第十步 - 软删除和回收站，基于后台任务: "Step 10 - Soft Delete and Recycle Bin Based on Background Tasks"
+            第十一步 - 本地化应用以面向全球用户: "Step 11 - Localize Application for Global Users"
+            第十二步 - 发布应用到真实的服务器: "Step 12 - Deploy Application to a Real Server"
+            第十三步 - 课后练习: "Step 13 - After-Class Exercises"
   - offline
   - same-dir
   - search
