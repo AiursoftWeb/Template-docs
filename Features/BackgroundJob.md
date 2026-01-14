@@ -77,8 +77,19 @@ backgroundJobQueue.QueueWithDependency<ILogger>(
 
 ## 最佳实践 (Best Practices)
 
-1. **不要在后台任务中使用 Controller 上下文**
-   后台任务是在独立的线程中运行的，它是“无头”的。千万不要尝试访问 `HttpContext`、`User` 或 Controller 的属性。所有需要的数据（如 UserId、Email）都应该通过参数通过闭包传入。
+1. **绝对禁止在后台任务中使用 Controller 中的依赖**
+   后台任务是**无头（Headless）**的，它在完全独立的线程和 Scope 中运行。
+   > ⛔ **危险操作**：
+   > *   不要在闭包中使用 `HttpContext`、`User`、`ModelState`。
+   > *   **不要**直接使用 Controller 构造函数中注入的服务（例如 `_context` 或 `_userManager`）。因为当后台任务运行时，Controller 本身可能已经被销毁，或者那些服务是基于 HTTP 请求 Scope 的，在后台线程中已失效。
+   >
+   > **正确做法**：
+   > 只使用通过 `QueueWithDependency<T>` 泛型注入进来的那个服务 `T`。如果你需要多个服务（例如同时需要 `EmailSender` 和 `LogService`），**不要**试图在一个任务里注入多个，也不要从 Controller 闭包里“偷”一个进去。
+   >
+   > **多服务注入模式（Composite Service Pattern）**：
+   > 如果任务逻辑复杂，依赖多个服务，请创建一个新的聚合服务。
+   > *   错误：试图在 Lambda 里同时用 A 和 B。
+   > *   正确：定义一个 `JobHandlerService`，在它的构造函数里注入 A 和 B。然后 `QueueWithDependency<JobHandlerService>`。这样依赖注入容器会为你正确管理 A 和 B 的生命周期。
 
 2. **注意数据生命周期（Data Persistance）**
    这是一个**内存（In-Memory）** 队列系统。
