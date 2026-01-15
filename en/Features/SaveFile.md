@@ -1,114 +1,108 @@
-# File Storage and Upload Module (Refactored)
+# File Storage & Upload Subsystem Integration Guide
 
-This module aims to make file uploading **extremely simple and secure**.
+This module utilizes a **"Physically Isolated, Logically Unified"** architectural design, aimed at providing an industry-grade secure file storage solution.
 
-The core design philosophy is **"Logical Path"**:
+The core design philosophy is the **"Logical Path"**:
 
-* **Frontend/Database/API**: Only handle clean logical paths (e.g., `avatar/2026/01/14/logo.png`).
-* **Backend底层**: Automatically map to physically isolated storage areas (e.g., `/data/Workspace/...`).
-
----
-
-## 🚫 Prohibited Operations
-
-1. **Prohibited** to use traditional HTML `<input type="file">` controls — this significantly increases workload, greatly expands the attack surface, and prevents access to advanced features like compression and privacy sanitization.
-2. **Prohibited** to directly receive `IFormFile` in business Controllers.
-3. **Prohibited** to manually concatenate physical paths to access files — always use `StorageService`.
+* **Frontend/Database/API**: Only handle clean **Logical Paths** (e.g., `avatar/2026/01/14/logo.png`).
+* **Backend Underlying**: Automatically maps logical paths to physically isolated storage areas (e.g., `/data/Workspace/...`).
 
 ---
 
-## 🔐 Public vs Private Files
+## 1. Core Rules (Strict Rules)
 
-This module supports both **public** and **private** file storage:
-
-### Public Files (Default)
-
-* **Storage**: Saved in the `Workspace` folder
-* **Access**: Anyone with the URL can download
-* **Use Cases**: User avatars, product images, public documents
-* **URL Format**: `/download/avatar/2026/01/14/logo.png`
-
-### Private Files (Vault)
-
-* **Storage**: Saved in the isolated `Vault` folder
-* **Access**: Requires a time-limited, cryptographically signed token
-* **Use Cases**: Private documents, sensitive data, confidential files, user's personal data
-* **URL Format**: `/download-private/contract/2026/01/14/agreement.pdf?token=<base64-encoded-token>`
-* **Security**: 
-  - Tokens expire after 60 minutes
-  - HMAC-SHA256 signature prevents tampering
-  - Path-specific authorization (token validates exact file path)
+1. **PROHIBITED**: Using traditional HTML `<input type="file">` controls. This significantly increases development workload, greatly expands the attack surface, and prevents access to advanced features like compression and privacy sanitization.
+2. **PROHIBITED**: Directly handling `IFormFile` within business Controllers. All file streams must be centrally managed by the `FilesController`.
+3. **PROHIBITED**: Manually concatenating physical paths (e.g., `Path.Combine(root, path)`) to access files. You must use `StorageService.GetFilePhysicalPath()` to leverage its built-in path traversal detection.
 
 ---
 
-## 🚀 Quick Integration: Three Steps
+## 2. Storage Modes Detailed
 
-### Step 1: View (Place Control)
+This module supports two completely isolated storage modes:
 
-In the `.cshtml` page, use the `vc:file-upload` component.
+| Feature | Public Files (Workspace) | Private Files (Vault) |
+| --- | --- | --- |
+| **Storage Location** | `/data/Workspace` | `/data/Vault` (Physically Isolated) |
+| **Access Rights** | Publicly accessible via URL | **Valid Token Required** |
+| **Token Expiry** | N/A | Default 60 minutes (HMAC-SHA256 Signed) |
+| **Use Cases** | Avatars, product images, public docs | ID cards, contracts, invoices, sensitive data |
+| **URL Format** | `/download/avatar/.../img.png` | `/download-private/contract/.../doc.pdf?token=...` |
+| **Upload Param** | Default (`useVault=false`) | `useVault=true` |
 
-**For Public Files:**
+---
+
+## 3. Quick Integration: Four-Step Process
+
+### Step 1: UI Integration (ViewComponent)
+
+Use the `vc:file-upload` component in your `.cshtml` pages.
+
+**Scenario A: Public Files (e.g., Avatars)**
 
 ```html
 <form asp-action="UpdateProfile" method="post">
+    <label>Upload Avatar</label>
     <vc:file-upload 
         asp-for="IconPath" 
         upload-endpoint="/upload/avatar" 
-        allowed-extensions="jpg png">
+        allowed-extensions="jpg png"
+        max-size-in-mb="5">
     </vc:file-upload>
 
-    <button type="submit">提交</button>
+    <button type="submit" class="btn btn-primary">Submit</button>
 </form>
 
-@* ReSharper disable once Razor.SectionNotResolved *@
+@* Include necessary styles and scripts *@
 @section styles {
     <link rel="stylesheet" href="~/node_modules/dropify/dist/css/dropify.min.css" />
     <link rel="stylesheet" href="~/styles/uploader.css" />
 }
-
-@* ReSharper disable once Razor.SectionNotResolved *@
 @section scripts {
     <script src="~/node_modules/dropify/dist/js/dropify.min.js"></script>
 }
+
 ```
 
-**For Private Files:**
+**Scenario B: Private Files (e.g., Contracts)**
+
+> **⚠️ Critical Correction**: You must append `?useVault=true` to the `upload-endpoint` to inform the API to store the file in the Vault, **AND** set the component attribute `is-vault="true"`. Otherwise, the image preview will fail (403 Forbidden) during record editing.
 
 ```html
 <form asp-action="UpdateContract" method="post">
+    <label>Upload Confidential Contract</label>
     <vc:file-upload 
         asp-for="ContractPath" 
         upload-endpoint="/upload/contract?useVault=true" 
+        is-vault="true"
         allowed-extensions="pdf docx">
     </vc:file-upload>
 
-    <button type="submit">上传私有文件</button>
+    <button type="submit" class="btn btn-primary">Save Contract</button>
 </form>
+
 ```
 
-> **Note**: Add `?useVault=true` to the upload endpoint to store files in the private Vault.
+### Step 2: ViewModel Definition (Logical Path Binding)
 
-### Step 2: ViewModel (Bind Model and Validation)
+The ViewModel receives the **Logical Path String** returned after a successful upload. This is where the first layer of validation (Bucket Locking) occurs.
 
-The file upload is submitted separately and does not affect the main form submission. The ViewModel only needs a string property to receive the logical path.
-
-Note: The logical path is neither a URL nor a physical path, but a "virtual path" representing the file's location within the storage system. Using a logical path allows the system to automatically handle file storage and access details, and helps prevent attacks exploiting path vulnerabilities.
+> **Concept**: A Logical Path is neither a URL nor a physical path; it is a "virtual path" representing the file's location. This allows the system to handle storage details automatically and prevents path vulnerability attacks.
 
 **For Public Files:**
 
 ```csharp
 public class UpdateProfileViewModel
 {
-    [NotNull]
     [Display(Name = "Avatar file")]
     [Required(ErrorMessage = "The avatar file is required.")]
     [MaxLength(150)]
-    [MinLength(2)]
-    // 这里接收的是逻辑路径，例如 "avatar/2025/01/01/xxx.jpg"
-    // ✅ 校验业务桶前缀，确保这里只能提交被上传到 `/avatar` 目录下的文件
-    [RegularExpression(@"^avatar.*", ErrorMessage = "请上传正确的头像文件。")]
+    // ✅ Security Core: Lock the bucket via Regex.
+    // Forces the path to start with "avatar/", preventing submission of files from other directories.
+    [RegularExpression(@"^avatar/.*", ErrorMessage = "Please upload a valid avatar file.")]
     public string? IconPath { get; set; }
 }
+
 ```
 
 **For Private Files:**
@@ -116,215 +110,191 @@ public class UpdateProfileViewModel
 ```csharp
 public class UpdateContractViewModel
 {
-    [NotNull]
     [Display(Name = "Contract Document")]
-    [Required(ErrorMessage = "The contract file is required.")]
-    [MaxLength(150)]
-    [MinLength(2)]
-    // 私有文件同样使用逻辑路径
-    // ✅ 校验业务桶前缀，确保只能提交到 `/contract` 目录下
-    [RegularExpression(@"^contract.*", ErrorMessage = "请上传正确的合同文件。")]
+    [Required(ErrorMessage = "Contract file is required.")]
+    [MaxLength(200)]
+    // ✅ Security Core: Lock to the contract directory
+    [RegularExpression(@"^contract/.*", ErrorMessage = "Invalid file path.")]
     public string? ContractPath { get; set; }
 }
+
 ```
 
-### Step 3: Controller (Save to Database)
+### Step 3: Controller Business Logic (Defensive Programming)
 
-The business Controller does not need to handle file streams; treat them like ordinary strings.
+**NEVER** trust the string submitted by the frontend. You must call `StorageService` for physical file validation before saving to the database.
 
 ```csharp
 [HttpPost]
-public async Task<IActionResult> UpdateProfile(UpdateProfileViewModel model)
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> UpdateContract(UpdateContractViewModel model)
 {
-    if (!ModelState.IsValid) return this.StackView(model);
+    if (!ModelState.IsValid) return View(model);
 
-    var user = await _userManager.GetUserAsync(User);
+    // 1. (Critical) Validate physical existence and security
+    // We use isVault: true as this is expected to be a private file
+    try 
+    {
+        var physicalPath = storageService.GetFilePhysicalPath(model.ContractPath, isVault: true);
+        
+        // If it's an image, you can additionally check: await imageCompressor.IsValidImageAsync(physicalPath)
+        if (!System.IO.File.Exists(physicalPath))
+        {
+             ModelState.AddModelError(nameof(model.ContractPath), "File upload failed or missing. Please re-upload.");
+             return View(model);
+        }
+    }
+    catch (ArgumentException) // Catch path traversal attack attempts
+    {
+        return BadRequest();
+    }
+
+    // 2. Persist to Database (Store only the Logical Path)
+    // DB Entry Example: "contract/2026/01/14/uuid.pdf"
+    var contract = new Contract 
+    { 
+        FilePath = model.ContractPath,
+        UploaderId = User.Identity.Name 
+    };
     
-    // 直接存入逻辑路径
-    // DB 存储示例: "avatar/2026/01/14/uuid.jpg"
-    user.IconPath = model.IconPath; 
-    
-    await _userManager.UpdateAsync(user);
+    _dbContext.Contracts.Add(contract);
+    await _dbContext.SaveChangesAsync();
+
     return RedirectToAction(nameof(Index));
 }
 
 ```
 
-Of course, if the business Controller needs to check files, such as whether they exist or have the correct MIME type, it can also do so through `StorageService`.
+### Step 4: Distribution and Download
 
-```csharp
-[HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> ChangeAvatar(ChangeAvatarViewModel model)
-{
-    if (!ModelState.IsValid)
-    {
-        return this.StackView(model);
-    }
-
-    // Make sure the file is actually a photo.
-    var absolutePath = storageService.GetFilePhysicalPath(model.AvatarUrl);
-    if (!await image.IsValidImageAsync(absolutePath))
-    {
-        ModelState.AddModelError(string.Empty, localizer["The file is not a valid image."]);
-        return this.StackView(model);
-    }
-
-    // Save the new avatar in the database.
-    var user = await GetCurrentUserAsync();
-    if (user != null)
-    {
-        user.AvatarRelativePath = model.AvatarUrl;
-        await userManager.UpdateAsync(user);
-
-        // Sign in the user to refresh the avatar.
-        await signInManager.SignInAsync(user, isPersistent: false);
-        return RedirectToAction(nameof(Index), new { Message = ManageMessageId.ChangeAvatarSuccess });
-    }
-
-    return this.StackView(model);
-}
-```
-
-### Step 4: Distribute Files
-
-Finally, when we need to display the files, we still use `StorageService` to convert them into internet-accessible URLs.
+In Razor views, use `StorageService` to convert logical paths into accessible URLs.
 
 **For Public Files:**
 
 ```html
 @inject Aiursoft.Template.Services.FileStorage.StorageService Storage
+
 <img src="@Storage.RelativePathToInternetUrl(Model.IconPath)" alt="User Avatar" />
+
 ```
 
 **For Private Files:**
 
 ```html
 @inject Aiursoft.Template.Services.FileStorage.StorageService Storage
-<!-- Token is automatically generated and embedded in the URL -->
+
 <a href="@Storage.RelativePathToInternetUrl(Model.ContractPath, isVault: true)" 
-   download="contract.pdf">
+   download="contract.pdf"
+   class="btn btn-secondary">
     Download Contract
 </a>
+
 ```
 
-> **Important**: 
-> - For private files, set `isVault: true` in `RelativePathToInternetUrl()`
-> - The system automatically generates a time-limited token in the URL
-> - Tokens are valid for 60 minutes by default
-> - Each token is cryptographically signed and path-specific
+> **Important**:
+> * For private files, always set `isVault: true`.
+> * The system automatically generates a cryptographically signed `?token=...`.
+> * Even if the URL is shared, it will expire after 60 minutes.
+> 
+> 
 
-Even if hackers successfully store malicious files or URLs from third-party servers into the database, they cannot access the actual files during rendering, because the system only allows access to files corresponding to these logical paths through `StorageService`.
+**Supported Dynamic Parameters (Images Only):**
 
-**Supported dynamic parameters**:
-
-* `?w=200`: Scale width (automatically maintains aspect ratio).
+* `?w=200`: Scale width to 200px (maintains aspect ratio).
 * `?square=true`: Center-crop to a square.
-* **Default behavior**: All image download requests will **automatically remove EXIF information** (GPS, camera settings), protecting user privacy.
+* **Default Behavior**: All image requests **automatically strip EXIF metadata** (GPS, camera settings) to protect user privacy.
 
-## 🏗️ Architecture Deep Dive
+---
 
-This module employs an advanced architecture based on **"physical isolation, logical unification"**.
+## 4. Architecture Deep Dive
 
-### 1. Directory Layout
+The system divides the disk into four regions, routed transparently via `StorageService`.
 
-The server's physical disk (`/data`) is strictly divided into four regions:
+### 1. Directory Structure
 
 ```text
-/data (存储根)
-├── Workspace/        # [Source of Truth] 公共原始数据区
-│   └── avatar/       # 公共文件：仅供上传写入，不对外直接暴露
+/data (Storage Root)
+├── Workspace/        # [Source of Truth] Public raw data area
+│   └── avatar/       # Public files: Upload-only, not directly exposed
 │
-├── Vault/            # [Private Storage] 私有原始数据区 🔒
-│   └── contract/     # 私有文件：需要token才能访问
+├── Vault/            # [Private Storage] Private raw data area 🔒
+│   └── contract/     # Private files: Token required for access
 │
-├── ClearExif/        # [Privacy Layer] 隐私清洗区 (缓存)
-│   ├── Workspace/    # 公共文件的EXIF清理副本
-│   │   └── avatar/
-│   └── Vault/        # 私有文件的EXIF清理副本
-│       └── contract/
+├── ClearExif/        # [Privacy Layer] Privacy sanitization (Cache)
+│   ├── Workspace/    # EXIF-cleared copies for public files
+│   └── Vault/        # EXIF-cleared copies for private files
 │
-└── Compressed/       # [Cache Layer] 缩略图区 (缓存)
-    ├── Workspace/    # 公共文件的压缩副本
-    │   └── avatar/
-    └── Vault/        # 私有文件的压缩副本
-        └── contract/
+└── Compressed/       # [Cache Layer] Thumbnail area (Cache)
+    ├── Workspace/    # Compressed copies for public files
+    └── Vault/        # Compressed copies for private files
+
 ```
 
 ### 2. Path Translation Mechanism
 
-`StorageService` acts as a **smart gateway**, mapping user-defined logical paths to different physical regions, achieving "transparent security protection".
+`StorageService` acts as a **Smart Gateway**, mapping logical paths to different physical regions.
 
 **Public Files (Workspace):**
 
-| User Request (API) | Logical Path (Internal) | Actual Physical Operation (Physical) | Notes |
+| Request (API) | Logical Path (Internal) | Physical Operation | Notes |
 | --- | --- | --- | --- |
-| **Upload** | `avatar/img.png` | Write to `/data/Workspace/avatar/img.png` | Original file goes in but never comes out |
-| **Download Original** | `avatar/img.png` | Read from `/data/ClearExif/Workspace/avatar/img.png` | Automatically cleans privacy information |
-| **Download Thumbnail** | `avatar/img.png?w=200` | Read from `/data/Compressed/Workspace/avatar/img_w200.png` | Automatically compressed for faster delivery |
+| **Upload** | `avatar/img.png` | Write to `/data/Workspace/...` | Original saved but never exposed |
+| **Download Raw** | `avatar/img.png` | Read from `/data/ClearExif/...` | Privacy stripped automatically |
+| **Download Thumb** | `avatar/img.png?w=200` | Read from `/data/Compressed/...` | Compressed for delivery |
 
 **Private Files (Vault):**
 
-| User Request (API) | Logical Path (Internal) | Actual Physical Operation (Physical) | Notes |
+| Request (API) | Logical Path (Internal) | Physical Operation | Notes |
 | --- | --- | --- | --- |
-| **Upload** | `contract/doc.pdf` | Write to `/data/Vault/contract/doc.pdf` | Isolated from public storage |
-| **Download** | `contract/doc.pdf` | Read from `/data/Vault/contract/doc.pdf` | Requires valid token |
-| **Download Image** | `contract/scan.jpg` | Read from `/data/ClearExif/Vault/contract/scan.jpg` | Token + EXIF removal |
-| **Download Thumbnail** | `contract/scan.jpg?w=200` | Read from `/data/Compressed/Vault/contract/scan_w200.jpg` | Token + compression |
-
-## 🧩 Core Service Reference
-
-* **StorageService**: Core gateway handling path mapping, file storage, token generation/validation, and access control checks.
-* **ImageProcessingService**: Handles image compression, privacy removal, and format validation for both public and private files.
-* **FeatureFoldersProvider**: (Internal) Configuration source managing physical directory structure (Workspace, Vault, ClearExif, Compressed).
-* **FilesController**: Provides unified upload and download endpoints:
-  - `/upload/{subfolder}?useVault=false` - Public file upload
-  - `/upload/{subfolder}?useVault=true` - Private file upload
-  - `/download/**` - Public file download
-  - `/download-private/**?token=xxx` - Private file download with token validation
+| **Upload** | `contract/doc.pdf` | Write to `/data/Vault/...` | Isolated from public storage |
+| **Download** | `contract/doc.pdf` | Read from `/data/Vault/...` | **Token Required** |
+| **Download Image** | `contract/scan.jpg` | Read from `/data/ClearExif/...` | Token + EXIF stripped |
 
 ---
 
-## 🔑 Token-Based Security for Private Files
+## 5. Token Security Mechanism (Deep Dive)
 
-### How It Works
+### How it Works
 
-1. **Token Generation**: When calling `RelativePathToInternetUrl(path, isVault: true)`, the system generates a token using ASP.NET Core's `IDataProtectionProvider`:
-   - File path is encrypted
-   - Expiry timestamp (60 minutes from generation) is embedded
-   - Cryptographic signature prevents tampering
+1. **Generation**: When calling `RelativePathToInternetUrl(path, isVault: true)`, the system uses ASP.NET Core's `IDataProtectionProvider`:
+* File path is encrypted.
+* An expiry timestamp (60 mins) is embedded.
+* A cryptographic signature is added to prevent tampering.
 
-2. **Token Format**: Encrypted, base64-encoded string (handled by DataProtection API)
 
-3. **Token Validation**: On download request, the system automatically verifies:
-   - Token hasn't expired
-   - Token hasn't been tampered with
-   - Requested path matches the authorized path in the token
+2. **Format**: An encrypted, base64-encoded string.
+3. **Validation**: Upon download request, the system verifies:
+* Token has not expired.
+* Token has not been tampered with.
+* The decrypted path matches the requested path (prevents using a token for File A to download File B).
 
-### Key Management
 
-**No configuration required!** The system uses ASP.NET Core's built-in `DataProtection` API, which automatically:
-
-- Generates and manages encryption keys
-- Persists keys securely to disk
-- Handles key rotation automatically
-- Provides secure key storage across application restarts
-
-> **Note**: In production environments, keys are automatically stored in the application's data directory. For distributed deployments (multiple servers), you may want to configure a shared key storage location using standard DataProtection configuration.
 
 ### Programmatic Token Generation
 
-If you need to generate download tokens in backend code:
+If you need to generate secure URLs in backend code (e.g., for email attachments):
 
 ```csharp
-public class DocumentService
+public class DocumentService(StorageService storage)
 {
-    private readonly StorageService _storage;
-    
     public string GetSecureDownloadUrl(string logicalPath)
     {
-        // Generates a time-limited, encrypted URL
-        return _storage.RelativePathToInternetUrl(logicalPath, isVault: true);
+        // Generates a time-limited, encrypted full URL
+        return storage.RelativePathToInternetUrl(logicalPath, isVault: true);
     }
 }
+
 ```
+
+---
+
+## 6. FAQ
+
+**Q: Why does the upload interface (`FilesController`) use a `subfolder` route parameter?**
+A: To implement **Bucket Isolation**. Frontend specifies `/upload/avatar`, and the backend saves it under the `.../avatar/` directory. Combined with Regex validation (`^avatar/.*`), this prevents users from uploading a "chat image" and submitting it as an "avatar," eliminating cross-module file reference risks.
+
+**Q: Is EXIF stripping applied only to images?**
+A: Yes. The system detects MIME types and file headers. Non-image files like PDFs or ZIPs are streamed directly without processing.
+
+**Q: How do I change the token expiration time?**
+A: In the `StorageService.GetDownloadToken` method, simply modify the `TimeSpan.FromMinutes(60)` value.
