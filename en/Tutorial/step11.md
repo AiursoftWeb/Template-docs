@@ -1,7 +1,2 @@
-# Step11
-
-> [!NOTE]
-> This page needs to be translated to English.
-> Please translate the content from the Chinese version of this page.
-
+# Aiursoft Template Tutorial - Step 11 - Localize Your App for a Global Audience
 

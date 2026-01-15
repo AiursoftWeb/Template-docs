@@ -1,7 +1,2 @@
-# Step10
-
-> [!NOTE]
-> This page needs to be translated to English.
-> Please translate the content from the Chinese version of this page.
-
+# Aiursoft Template Tutorial - Step 10 - Soft Delete and Recycle Bin, Based on Background Tasks
 

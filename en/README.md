@@ -15,11 +15,11 @@
 * **Responsive Design:** A fully responsive layout that looks great on both desktop and mobile devices.
 * **Automatic Dark Mode:** Smart dark mode that adapts to the user's system settings.
 * **Dockerized for Easy Deployment:** Comes with Docker support for simplified and consistent deployments.
-* **Robust Integration Testing** Effortlessly write integration tests using in-memory databases, temporary file systems, built-in mocking, and real-world HTTP request simulation.
-* **Automatic Time Zone Handling** Develop exclusively in UTC while the system automatically converts and displays dates in the user's local time zone.
-* **Background Job Processing** "Fire-and-forget" support for long-running tasks (like emails or AI), featuring a GUI for queue management, parallel processing, and cancellation.
-* **Scheduled Task Management** Handle recurring jobs like cleanup and synchronization with a comprehensive GUI for monitoring execution history and logs.
-* **Smart Configuration Overrides** Supports both environment variables and database-backed settings, with automatic priority given to environment variables for seamless overrides.
+* **Robust Integration Testing:** Effortlessly write integration tests using in-memory databases, temporary file systems, built-in mocking, and real-world HTTP request simulation.
+* **Automatic Time Zone Handling:** Develop exclusively in UTC while the system automatically converts and displays dates in the user's local time zone.
+* **Background Job Processing:** "Fire-and-forget" support for long-running tasks (like emails or AI), featuring a GUI for queue management, parallel processing, and cancellation.
+* **Scheduled Task Management:** Handle recurring jobs like cleanup and synchronization with a comprehensive GUI for monitoring execution history and logs.
+* **Smart Configuration Overrides:** Supports both environment variables and database-backed settings, with automatic priority given to environment variables for seamless overrides.
 
 ## Getting Started
 
@@ -27,17 +27,17 @@ We strongly suggest getting started by following our [Quick tutorial](./Tutorial
 
 Content:
 
-* [Before Starting](./Tutorial/before.md)
+* [Before You Start](./Tutorial/before.md)
 * [Step 1 - Create a New Project](./Tutorial/step1.md)
 * [Step 2 - Add and Debug Third-Party Libraries](./Tutorial/step2.md)
 * [Step 3 - Add a New Page](./Tutorial/step3.md)
-* [Step 4 - Add a New Data Model and Modify Database Structure](./Tutorial/step4.md)
-* [Step 5 - Save Data to Database](./Tutorial/step5.md)
+* [Step 4 - Add a New Data Model and Modify the Database Schema](./Tutorial/step4.md)
+* [Step 5 - Save Data to the Database](./Tutorial/step5.md)
 * [Step 6 - Admin Dashboard and New Permissions](./Tutorial/step6.md)
-* [Step 7 - Add New Configuration Items with Environment Variable Support](./Tutorial/step7.md)
+* [Step 7 - Add New Configuration Items and Support Environment Variables](./Tutorial/step7.md)
 * [Step 8 - Add Custom Validation](./Tutorial/step8.md)
-* [Step 9 - Allow Users to Upload Files from Frontend](./Tutorial/step9.md)
-* [Step 10 - Soft Delete and Recycle Bin Based on Background Tasks](./Tutorial/step10.md)
-* [Step 11 - Localize Application for Global Users](./Tutorial/step11.md)
-* [Step 12 - Deploy Application to a Real Server](./Tutorial/step12.md)
-* [Step 13 - After-Class Exercises](./Tutorial/step13.md)
+* [Step 9 - Allow Users to Upload Files from the Frontend](./Tutorial/step9.md)
+* [Step 10 - Soft Delete and Recycle Bin, Based on Background Tasks](./Tutorial/step10.md)
+* [Step 11 - Localize the Application for a Global Audience](./Tutorial/step11.md)
+* [Step 12 - Deploy the Application to a Real Server](./Tutorial/step12.md)
+* [Step 13 - Post-Tutorial Exercises](./Tutorial/step13.md)

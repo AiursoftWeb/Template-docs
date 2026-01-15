@@ -23,6 +23,12 @@ sudo apt update
 sudo apt install dotnet10 -y
 ```
 
+安装 .NET 10 SDK 后，你可以使用以下命令来安装 EF Core 工具：
+
+```bash title="安装 EF Core 工具"
+dotnet tool install --global dotnet-ef
+```
+
 安装 git 后，你必须配置你的用户名和邮箱：
 
 ```bash title="配置 git 用户名和邮箱"
