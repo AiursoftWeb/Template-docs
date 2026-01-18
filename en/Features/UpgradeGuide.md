@@ -161,21 +161,48 @@ If you're using tools like Antigravity or Cursor, you can do the following:
 * Use the following prompt:
 
 ```markdown
-这是一个使用 Aiursoft Template 生成的项目。它在很久之前被从模板（Template）生成了，之后我们开发了大量独有的业务逻辑代码。因此，它和模板关系逐渐变得不同。
+**Role & Objective:**
+You are acting as a senior software architect. You are tasked with resolving merge conflicts for a project originally generated via the **Aiursoft Template**.
 
-现在，我们正在尝试将这个项目升级到最新的模板版本，以利用最新的功能和改进。在这个项目单独发展期间，模板也经历了许多变化。大量基础设施功能都是模板带来的，例如文件上传、文件分发、图片压缩、多数据库支持、身份验证、权限系统、设置系统、后台任务等等……显然，我们不能简单地用最新的模板代码覆盖当前项目代码，因为那样会丢失我们所有的业务逻辑代码。
+**Context:**
 
-我们试着重新使用模板对这个项目进行了生成，并将生成的代码与当前的代码进行合并。当然，这产生了大量业务逻辑冲突。
+* **Origin:** This project was scaffolded using the Aiursoft Template long ago.
+* **Evolution:** Since then, extensive custom business logic has been developed, causing the codebase to diverge significantly from the original template.
+* **Current Goal:** We are upgrading the project to the latest version of the template to leverage new features and improvements.
+* **The Conflict:** The template provides core infrastructure (file upload, image compression, multi-DB support, auth, permissions, background tasks, etc.). However, simply overwriting the current project with the new template is impossible as it would destroy our proprietary business logic. We have regenerated the project using the new template and attempted a merge, resulting in numerous conflicts.
 
-因此，我需要你精细的判断这些冲突，如果是明显的模板带来的基础设施级别的改动提升，请优先选择模板的代码，但模板可能并不完全适用于当前项目，比如模板会改变主页、仪表板主页关系等。这个项目很可能当初根本就没有使用全部的模板功能。总之，对于基础设施的变化，优先尊重模板的改动。
+**Conflict Resolution Guidelines:**
 
-但是，有一些基础设施的改动，又是为了服务特有的业务的，比如额外增加的编译步骤、特定的中间件配置、为基础设施例如用户管理增加额外的API……如果你确定这些都是有用的，这些请优先保留当前项目的代码。我们最高优先级是避免项目崩溃。哪怕一些逻辑你完全不理解，也请优先保留两者中能保证项目正常运行的代码。
+**1. Infrastructure vs. Business Logic**
 
-大量页面、介绍文字、主页、测试代码、独特的权限、数据库实体等，都是当前项目独有的业务逻辑代码，模板的文件现在突然被覆盖过来，可能看起来好像要删除掉很多重要业务逻辑代码。但请你务必判断，这些业务逻辑代码确实是当前项目独有的，而不是模板带来的。如果是当前项目独有的，请优先保留当前项目的代码。如果同时项目本身的功能和模板都在试图添加一写内容例如权限，请全部保留，以确保：模板的业务逻辑和当前项目的业务逻辑都能正常运行。
+* **Template Infrastructure (High Priority):** If a conflict involves an infrastructure-level improvement provided by the new template, **prioritize the template's code**.
+* *Note:* Be mindful that the template might alter UI elements (e.g., Homepage, Dashboard) that the project may not utilize or has customized.
 
-有些类可能会重复，如果内容完全相同，优先以模板的类为准。如果内容不同，请手动合并，确保保留当前项目的业务逻辑代码，同时吸收模板的改进。
 
-最后，确保项目能通过编译，所有单元测试通过，`./lint.sh` 不报错，并且手动测试关键功能，确保一切正常运行。
+* **Custom Infrastructure (Top Priority):** If the current project includes infrastructure changes made specifically to serve unique business needs (e.g., extra build steps, specific middleware configurations, additional User Management APIs), **prioritize the current project's code**.
+
+**2. Stability & Safety (Critical)**
+
+* **Highest Priority:** The absolute priority is to avoid breaking the project.
+* **Unknown Logic:** If you encounter logic you do not fully understand, prioritize retaining the code that ensures the project remains operational.
+* **Do Not Delete:** Do not blindly delete or discard code that clearly affects functionality.
+
+**3. Handling Business Logic**
+
+* **Unique Assets:** Pages, copy/text, tests, unique permissions, and database entities that are specific to the current project must be preserved. Do not treat these as "template files to be overwritten/deleted."
+* **Additive Changes:** If both the current project and the new template attempt to add items to the same system (e.g., the permissions list), **retain ALL items**. Ensure that both the template's new logic and the project's existing logic can coexist and function.
+
+**4. Class Merging Strategy**
+
+* **Identical Content:** If a class exists in both and the content is identical, default to the **template's version**.
+* **Divergent Content:** If the content differs, perform a **manual merge**. You must retain the current project's business logic while absorbing the template's technical improvements.
+
+**Definition of Done:**
+
+1. The project must compile successfully.
+2. All unit tests must pass.
+3. The `./lint.sh` script must run without errors.
+4. Key functionalities must be manually verified to ensure everything runs normally.
 ```
 
 ## Step 4 Verify Upgrade Results
