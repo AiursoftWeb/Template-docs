@@ -2,14 +2,14 @@
 
 ## Step 1 Prepare Before Upgrade
 
-* Ensure the current repository is up to date by running `git pull`.
-* Ensure the build passes and all unit tests pass.
-* Ensure `./lint.sh` passes.
-* Ensure there are no uncommitted changes on the current branch.
+* Make sure the current repository is up to date by running `git pull`.
+* Make sure the build passes and all unit tests pass.
+* Make sure `./lint.sh` passes.
+* Make sure there are no uncommitted changes on the current branch.
 * Backup the current codebase in case anything goes wrong.
-* Ensure you have installed the latest version of the Voyager tool.
+* Make sure you have installed the latest version of the Voyager tool.
 
-Next, perform some pre-upgrade preparations. First, open Jetbrains Rider, and ensure all C# classes are in separate files (i.e., each class is defined in its own file), with no multiple class definitions in a single file. If there are any, split them into individual files.
+Next, perform some pre-upgrade preparations. First, open Jetbrains Rider and ensure all C# classes are in separate files (i.e., each class is defined in its own file), not multiple classes defined in the same file. If any are found, split them into individual files.
 
 ## Step 2 Execute Upgrade
 
@@ -97,6 +97,12 @@ echo -e "${YELLOW}Removed template migrations.${NC}"
 find . -type d -name "bin" -exec rm -rf {} +
 find . -type d -name "obj" -exec rm -rf {} +
 
+# 4.3 删除 所有几乎所有项目都已经被重命名或删除的文件
+find . -type f -name "HomeController.cs" -exec rm -f {} +
+find . -type f -name "DashboardController.cs" -exec rm -f {} +
+find . -type f -name "ViewModelArgsInjector.cs" -exec rm -f {} +
+find . -type f -name "README.md" -exec rm -f {} +
+
 # [新增] 4.3 彻底删除模版里的所有 .resx 文件
 # 这样合并时，模版侧没有任何资源文件，Git 会完全保留你当前的资源文件，
 # 且不会引入任何新的资源文件。
@@ -104,6 +110,7 @@ find . -type f -name "*.resx" -exec rm -f {} +
 find . -type f -name "*.csproj" -exec rm -f {} +
 find . -type f -name "*.png" -exec rm -f {} +
 find . -type f -name "*.svg" -exec rm -f {} +
+find . -type f -name "package-lock.json“ -exec rm -f {} +
 echo -e "${YELLOW}Removed all template .resx files (Keeping yours strictly).${NC}"
 
 echo -e "${BLUE}=== Step 5: Committing Template State ===${NC}"
@@ -139,25 +146,49 @@ fi
 
 ## Step 3 Resolve Merge Conflicts
 
-You are expected to encounter a large number of conflicts that need to be resolved manually, especially files like `Startup.cs` and `.csproj`. Please follow these steps:
+Expect a large number of conflicts that need to be resolved manually, especially files like `Startup.cs` and `.csproj`. Follow these steps:
 
-* Open your IDE (recommended: Visual Studio or Jetbrains Rider).
-* Locate all files marked as conflicts (usually indicated with red markers).
+* Open your IDE (recommended: Visual Studio or JetBrains Rider).
+* Locate all files marked as conflicting (usually indicated by red markers).
 * Resolve conflicts file by file, ensuring you preserve your own business logic while incorporating improvements from the template.
-* Note: All conflicts in `.resx` files have been ignored, as we have removed all resource files from the template, ensuring your resource files will not be overwritten.
+* Note: All conflicts in `.resx` files have been ignored, as we removed all resource files from the template to ensure your resource files are not overwritten.
 * After resolving all conflicts, run `git add .` followed by `git commit` to complete the merge.
+
+If you're using tools like Antigravity or Cursor, you can do the following:
+
+* Open Antigravity or Cursor.
+* Navigate to the conflicting files.
+* Use the following prompt:
+
+```markdown
+这是一个使用 Aiursoft Template 生成的项目。它在很久之前被从模板（Template）生成了，之后我们开发了大量独有的业务逻辑代码。因此，它和模板关系逐渐变得不同。
+
+现在，我们正在尝试将这个项目升级到最新的模板版本，以利用最新的功能和改进。在这个项目单独发展期间，模板也经历了许多变化。大量基础设施功能都是模板带来的，例如文件上传、文件分发、图片压缩、多数据库支持、身份验证、权限系统、设置系统、后台任务等等……显然，我们不能简单地用最新的模板代码覆盖当前项目代码，因为那样会丢失我们所有的业务逻辑代码。
+
+我们试着重新使用模板对这个项目进行了生成，并将生成的代码与当前的代码进行合并。当然，这产生了大量业务逻辑冲突。
+
+因此，我需要你精细的判断这些冲突，如果是明显的模板带来的基础设施级别的改动提升，请优先选择模板的代码，但模板可能并不完全适用于当前项目，比如模板会改变主页、仪表板主页关系等。这个项目很可能当初根本就没有使用全部的模板功能。总之，对于基础设施的变化，优先尊重模板的改动。
+
+但是，有一些基础设施的改动，又是为了服务特有的业务的，比如额外增加的编译步骤、特定的中间件配置、为基础设施例如用户管理增加额外的API……如果你确定这些都是有用的，这些请优先保留当前项目的代码。我们最高优先级是避免项目崩溃。哪怕一些逻辑你完全不理解，也请优先保留两者中能保证项目正常运行的代码。
+
+大量页面、介绍文字、主页、测试代码、独特的权限、数据库实体等，都是当前项目独有的业务逻辑代码，模板的文件现在突然被覆盖过来，可能看起来好像要删除掉很多重要业务逻辑代码。但请你务必判断，这些业务逻辑代码确实是当前项目独有的，而不是模板带来的。如果是当前项目独有的，请优先保留当前项目的代码。
+
+有些类可能会重复，如果内容完全相同，优先以模板的类为准。如果内容不同，请手动合并，确保保留当前项目的业务逻辑代码，同时吸收模板的改进。
+
+最后，确保项目能通过编译，所有单元测试通过，`./lint.sh` 不报错，并且手动测试关键功能，确保一切正常运行。
+```
 
 ## Step 4 Verify Upgrade Results
 
-* Compile the project to ensure there are no compilation errors.
+* Build the project to ensure there are no compilation errors.
 
-Next, you will likely need to recreate Migrations for the new project. Open the terminal, navigate to the `Sqlite` and `MySQL` project directories, and create new initial migration files according to the README in each directory.
+Next, you will likely need to recreate Migrations for the new project. Open the terminal, navigate to the `Sqlite` and `MySQL` project directories, and create new initial migration files respectively according to the README files in each directory.
 
 Then continue:
 
 * Run all unit tests to ensure no tests fail.
 * Run `./lint.sh` to ensure code style checks pass.
-* Manually test key functionalities to ensure everything runs correctly.
+* Manually test key features to ensure everything runs properly.
 * Finally, commit your changes to the version control system.
 
-Congratulations! You have successfully upgraded the project to the latest template version! Happy coding! 🚀
+That's it! You have successfully upgraded the project to the latest template version! Happy coding! 🚀
