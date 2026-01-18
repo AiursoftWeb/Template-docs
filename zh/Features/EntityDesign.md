@@ -39,7 +39,7 @@
 **2.2 外键ID 必填性**
 
   * **必填关系**：外键ID 必须是 `Guid`，`string` 或 `int`，且属性必须是 `required`。此时，外键是不可空的。
-  * **可选关系**：外键ID 必须是 `Guid?`, `string?` 或 `int?`，且属性必须是 `required`。此时，外键是可空的。
+  * **可选关系**：外键ID 必须是 `Guid?`, `string?` 或 `int?`，且属性必须是 `required`。此时，外键是可空的。初始化时，**必须显式赋值为 `null`**。
 
 **2.3 导航引用可空性**
 
@@ -48,7 +48,10 @@
   * *理由*：在 `new Entity()` 时我们通常只赋值 ID 而不赋值对象，声明为可空是为了满足 C\# 编译器的初始化检查，避免虚假的警告。
 
 **2.4 导航属性必须 NotNull**
-所有**导航引用属性**，如果一定不为空，则必须被 `[NotNull]` 修饰。
+所有**导航引用属性**，如果一定不为空，则必须被 `[NotNull]` 修饰；否则不允许使用 `[NotNull]`。
+
+  * *目的*：让编译器在使用导航属性时不报空引用警告。
+  * *注意*：即使加了 `[NotNull]`，属性类型仍然必须是可空类型（如 `User?`）。
 
 **2.5 序列化屏蔽**
 所有**导航引用属性**必须被 `[Newtonsoft.Json.JsonIgnore]` 修饰（防止死循环）。
@@ -160,6 +163,17 @@ public class TemplateEntity
     [ForeignKey(nameof(ParentId))]
     [NotNull]
     public ParentEntity? Parent { get; set; }
+
+    // ================= 关联关系，可空的 ================
+
+    // [规则 2.2] 可选外键ID：required Guid? (实例化时，必须显式赋值 null)
+    public required Guid? OptionalParentId { get; set; }
+
+    // [规则 2.3, 2.4, 2.5, 2.6] 可选导航引用：Type?, JsonIgnore, ForeignKey
+    // 严禁 NotNull (因为是可选的)，严禁 virtual
+    [JsonIgnore]
+    [ForeignKey(nameof(OptionalParentId))]
+    public ParentEntity? OptionalParent { get; set; }
 
     // [规则 3.1, 3.2, 3.3] 
     // 集合：IEnumerable (独裁模式), InverseProperty, new List()
