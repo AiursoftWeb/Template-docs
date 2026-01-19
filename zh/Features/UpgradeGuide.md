@@ -19,7 +19,7 @@
 #!/bin/bash
 
 # ==========================================
-# Aiursoft Template Upgrade Script (Final v2)
+# Aiursoft Template Upgrade Script (Final v3)
 # ==========================================
 
 # 遇到错误立即停止
@@ -59,6 +59,20 @@ if [ -n "$(git status --porcelain)" ]; then
     exit 1
 fi
 
+# [新增] Step 0: 探测现有的 DbContext 名称
+# 我们必须在切换到 orphan 分支（并清空文件）之前做这件事
+echo -e "${BLUE}=== Step 0: Detecting Existing DbContext ===${NC}"
+# 查找以 DbContext.cs 结尾，且不是 TemplateDbContext.cs 的文件
+EXISTING_CONTEXT_FILE=$(find . -type f -name "*DbContext.cs" | grep -v "TemplateDbContext" | head -n 1)
+
+if [ -n "$EXISTING_CONTEXT_FILE" ]; then
+    EXISTING_CONTEXT_NAME=$(basename "$EXISTING_CONTEXT_FILE" .cs)
+    echo -e "${GREEN}Detected Target DbContext:${NC} $EXISTING_CONTEXT_NAME"
+else
+    echo -e "${YELLOW}Warning: No custom DbContext found (or only TemplateDbContext exists). Skipping rename logic.${NC}"
+    EXISTING_CONTEXT_NAME=""
+fi
+
 echo -e "${BLUE}=== Step 1: Preparing Orphan Branch ===${NC}"
 
 if git show-ref --verify --quiet "refs/heads/$TEMP_BRANCH_NAME"; then
@@ -87,6 +101,25 @@ fi
 cp -r "$GEN_DIR/." "$CURRENT_DIR/"
 rm -rf "$GEN_DIR"
 
+# [新增] Step 3.5: 智能重命名 DbContext
+# 如果之前找到了自定义的 DbContext 名字，现在就把模版里的 TemplateDbContext 全部替换掉
+if [ -n "$EXISTING_CONTEXT_NAME" ]; then
+    echo -e "${BLUE}=== Step 3.5: Renaming TemplateDbContext to $EXISTING_CONTEXT_NAME ===${NC}"
+    
+    # 1. 内容替换 (递归替换所有文件中的字符串)
+    # 使用 sed 替换文件内容 (Mac用户注意：Linux下 sed -i 直接用，Mac可能需要 sed -i '')
+    grep -rIl "TemplateDbContext" . --exclude-dir=.git | xargs sed -i "s/TemplateDbContext/$EXISTING_CONTEXT_NAME/g"
+    
+    # 2. 文件重命名
+    # 找到 TemplateDbContext.cs 并重命名为 AbCdDbContext.cs
+    TEMPLATE_CTX_FILE=$(find . -name "TemplateDbContext.cs" | head -n 1)
+    if [ -n "$TEMPLATE_CTX_FILE" ]; then
+        DIR_NAME=$(dirname "$TEMPLATE_CTX_FILE")
+        mv "$TEMPLATE_CTX_FILE" "$DIR_NAME/$EXISTING_CONTEXT_NAME.cs"
+        echo -e "${YELLOW}Renamed file: TemplateDbContext.cs -> $EXISTING_CONTEXT_NAME.cs${NC}"
+    fi
+fi
+
 echo -e "${BLUE}=== Step 4: Cleaning Template Noise ===${NC}"
 
 # 4.1 删除模版自带的 Migrations
@@ -103,15 +136,14 @@ find . -type f -name "DashboardController.cs" -exec rm -f {} +
 find . -type f -name "ViewModelArgsInjector.cs" -exec rm -f {} +
 find . -type f -name "README.md" -exec rm -f {} +
 
-# [新增] 4.3 彻底删除模版里的所有 .resx 文件
-# 这样合并时，模版侧没有任何资源文件，Git 会完全保留你当前的资源文件，
-# 且不会引入任何新的资源文件。
+# 4.4 彻底删除模版里的所有 .resx 文件及项目文件
+# 这样合并时，Git 会完全保留你当前的资源文件和 csproj 设置
 find . -type f -name "*.resx" -exec rm -f {} +
 find . -type f -name "*.csproj" -exec rm -f {} +
 find . -type f -name "*.png" -exec rm -f {} +
 find . -type f -name "*.svg" -exec rm -f {} +
 find . -type f -name "package-lock.json" -exec rm -f {} +
-echo -e "${YELLOW}Removed all template .resx files (Keeping yours strictly).${NC}"
+echo -e "${YELLOW}Removed all template .resx & .csproj files (Keeping yours strictly).${NC}"
 
 echo -e "${BLUE}=== Step 5: Committing Template State ===${NC}"
 git add .
@@ -138,8 +170,8 @@ else
     echo -e "This is good. It means git preserved your custom logic while trying to bring in updates."
     echo -e "1. Open your IDE."
     echo -e "2. Look for files with ${RED}red conflict markers${NC}."
-    echo -e "3. Note: All .resx files conflicts are gone (we ignored template resx)."
-    echo -e "4. Resolve conflicts (Startup.cs, .csproj, etc)."
+    echo -e "3. Note: TemplateDbContext has been auto-renamed to $EXISTING_CONTEXT_NAME."
+    echo -e "4. Resolve conflicts (Startup.cs, etc)."
     echo -e "5. Run 'git add .' and 'git commit'."
 fi
 ```
