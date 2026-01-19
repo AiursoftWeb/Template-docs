@@ -1,59 +1,59 @@
 # 文件存储与上传子系统集成指南
 
-本模块采用 **“物理隔离、逻辑统一”** 的架构设计，旨在提供工业级的文件安全存储方案。
+本模块采用 **“物理隔离，逻辑统一”** 的架构设计，旨在提供业界级别的安全文件存储解决方案。
 
-核心设计哲学是 **“逻辑路径（Logical Path）”**：
+核心设计理念为 **“逻辑路径”**：
 
-* **前端/数据库/API**：仅流转清晰的 **逻辑路径**（例如：`avatar/2026/01/14/logo.png`）。
-* **后端底层**：自动映射到物理隔离的存储区域（例如：`/data/Workspace/...`）。
+* **前端/数据库/API**：仅处理清晰的 **逻辑路径**（例如：`avatar/2026/01/14/logo.png`）。
+* **后端底层**：自动将逻辑路径映射到物理隔离的存储区域（例如：`/data/Workspace/...`）。
 
 ---
 
-## 1. 核心规则 (Strict Rules)
+## 1. 核心规则（严格规则）
 
-1. **禁止** 使用传统的 HTML `<input type="file">` 控件——这会显著增加工作量，极大扩展攻击面，并阻止访问压缩和隐私净化等高级功能。
-2. **禁止** 直接在业务 Controller 中处理 `IFormFile`。所有文件流操作必须由 `FilesController` 统一接管。
-3. **禁止** 手动拼接物理路径（如 `Path.Combine(root, path)`）来访问文件——必须使用 `StorageService.GetFilePhysicalPath()` 以利用其内置的防路径遍历检测。
+1. **禁止**：使用传统的 HTML `<input type="file">` 控件。这会显著增加开发工作量，大大扩展攻击面，并阻止访问压缩和隐私净化等高级功能。
+2. **禁止**：在业务 Controllers 中直接处理 `IFormFile`。所有文件流必须由 `FilesController` 集中管理。
+3. **禁止**：手动拼接物理路径（例如 `Path.Combine(root, path)`）来访问文件。您必须使用 `StorageService.GetFilePhysicalPath()` 以利用其内置的路径遍历检测功能。
 
 ---
 
 ## 2. 存储模式详解
 
-本模块支持两种完全隔离的存储模式：
+此模块支持两种完全隔离的存储模式：
 
-| 特性 | 公开文件 (Public / Workspace) | 私有文件 (Private / Vault) |
+| 特性 | 公共文件（工作区） | 私有文件（保险库） |
 | --- | --- | --- |
-| **存储位置** | `/data/Workspace` | `/data/Vault` (物理隔离) |
-| **访问权限** | 公网可直接访问 | **必须持有有效 Token** |
-| **Token时效** | 无 | 默认 60 分钟 (HMAC-SHA256 签名) |
-| **适用场景** | 用户头像、产品图片、公开文档 | 身份证、合同、发票、个人私密数据 |
+| **存储位置** | `/data/Workspace` | `/data/Vault`（物理隔离） |
+| **访问权限** | 通过 URL 公开可访问 | **需要有效令牌** |
+| **令牌过期时间** | 不适用 | 默认 60 分钟（HMAC-SHA256 签名） |
+| **使用场景** | 头像、产品图片、公开文档 | 身份证、合同、发票、敏感数据 |
 | **URL 格式** | `/download/avatar/.../img.png` | `/download-private/contract/.../doc.pdf?token=...` |
-| **上传参数** | 默认 (useVault=false) | `useVault=true` |
+| **上传参数** | 默认值（`useVault=false`） | `useVault=true` |
 
 ---
 
-## 3. 快速集成：四步完成
+## 3. 快速集成：四步流程
 
-### 步骤 1：UI 集成 (ViewComponent)
+### 步骤 1：UI 集成（ViewComponent）
 
-在 `.cshtml` 页面中，使用 `vc:file-upload` 组件。
+在您的 `.cshtml` 页面中使用 `vc:file-upload` 组件。
 
-**场景 A：公开文件（如头像）**
+**场景 A：公共文件（例如头像）**
 
 ```html
 <form asp-action="UpdateProfile" method="post">
-    <label>上传头像</label>
+    <label>Upload Avatar</label>
     <vc:file-upload 
         asp-for="IconPath" 
-        upload-endpoint="/upload/avatar" 
+        subfolder="avatar" 
         allowed-extensions="jpg png"
         max-size-in-mb="5">
     </vc:file-upload>
 
-    <button type="submit" class="btn btn-primary">提交</button>
+    <button type="submit" class="btn btn-primary">Submit</button>
 </form>
 
-@* 引入必要的样式和脚本 *@
+@* Include necessary styles and scripts *@
 @section styles {
     <link rel="stylesheet" href="~/node_modules/dropify/dist/css/dropify.min.css" />
     <link rel="stylesheet" href="~/styles/uploader.css" />
@@ -64,30 +64,30 @@
 
 ```
 
-**场景 B：私有文件（如合同）**
+**场景 B：私有文件（例如：合同）**
 
-> **⚠️ 关键修正**：必须在 `upload-endpoint` 添加 `?useVault=true` 告知上传接口存入 Vault，**同时**设置组件属性 `is-vault="true"`，否则在编辑回显时图片会裂开（403 Forbidden）。
+> **⚠️ 重要修正**：您必须设置 `is-vault="true"` 并提供一个 `subfolder`。系统将自动生成一个安全的、限时的上传令牌。
 
 ```html
 <form asp-action="UpdateContract" method="post">
-    <label>上传保密合同</label>
+    <label>Upload Confidential Contract</label>
     <vc:file-upload 
         asp-for="ContractPath" 
-        upload-endpoint="/upload/contract?useVault=true" 
+        subfolder="contract" 
         is-vault="true"
         allowed-extensions="pdf docx">
     </vc:file-upload>
 
-    <button type="submit" class="btn btn-primary">保存合同</button>
+    <button type="submit" class="btn btn-primary">Save Contract</button>
 </form>
 
 ```
 
-### 步骤 2：ViewModel 定义 (Logic Path Binding)
+### 步骤 2：ViewModel 定义（逻辑路径绑定）
 
-ViewModel 接收的是上传成功后返回的**逻辑路径字符串**。在此处进行第一道格式校验（Bucket Lock）。
+ViewModel 接收上传成功后返回的 **逻辑路径字符串**。这是第一层验证（存储桶锁定）发生的位置。
 
-> **概念说明**：逻辑路径既不是 URL 也不是物理路径，而是一种“虚拟路径”。它让系统自动处理存储细节，并有助于防止利用路径漏洞的攻击。
+> **概念**：逻辑路径既不是 URL 也不是物理路径；它是一个“虚拟路径”，用于表示文件的位置。这使得系统能够自动处理存储细节，并防止路径漏洞攻击。
 
 **对于公开文件：**
 
@@ -97,32 +97,32 @@ public class UpdateProfileViewModel
     [Display(Name = "Avatar file")]
     [Required(ErrorMessage = "The avatar file is required.")]
     [MaxLength(150)]
-    // ✅ 安全核心：正则锁定存储桶。
-    // 强制要求路径必须以 "avatar/" 开头，防止攻击者提交其他目录下的文件。
-    [RegularExpression(@"^avatar/.*", ErrorMessage = "请上传正确的头像文件。")]
+    // ✅ Security Core: Lock the bucket via Regex.
+    // Forces the path to start with "avatar/", preventing submission of files from other directories.
+    [RegularExpression(@"^avatar/.*", ErrorMessage = "Please upload a valid avatar file.")]
     public string? IconPath { get; set; }
 }
 
 ```
 
-**对于私有文件：**
+**对于私人文件：**
 
 ```csharp
 public class UpdateContractViewModel
 {
     [Display(Name = "Contract Document")]
-    [Required(ErrorMessage = "必须上传合同文件。")]
+    [Required(ErrorMessage = "Contract file is required.")]
     [MaxLength(200)]
-    // ✅ 安全核心：锁定 contract 目录
-    [RegularExpression(@"^contract/.*", ErrorMessage = "非法的文件路径。")]
+    // ✅ Security Core: Lock to the contract directory
+    [RegularExpression(@"^contract/.*", ErrorMessage = "Invalid file path.")]
     public string? ContractPath { get; set; }
 }
 
 ```
 
-### 步骤 3：Controller 业务处理 (Defensive Programming)
+### 第三步：控制器业务逻辑（防御性编程）
 
-**绝对不要**信任前端提交的字符串。在写入数据库前，必须调用 `StorageService` 进行物理文件校验。
+**绝对不要**信任前端提交的字符串。在保存到数据库之前，你必须调用 `StorageService` 对物理文件进行验证。
 
 ```csharp
 [HttpPost]
@@ -131,26 +131,26 @@ public async Task<IActionResult> UpdateContract(UpdateContractViewModel model)
 {
     if (!ModelState.IsValid) return View(model);
 
-    // 1. (关键) 验证文件物理存在性与安全性
-    // 这里使用 isVault: true，因为我们预期这是一个私有文件
+    // 1. (Critical) Validate physical existence and security
+    // We use isVault: true as this is expected to be a private file
     try 
     {
         var physicalPath = storageService.GetFilePhysicalPath(model.ContractPath, isVault: true);
         
-        // 如果是图片，还可以额外检查 IsValidImageAsync(physicalPath)
+        // If it's an image, you can additionally check: await imageCompressor.IsValidImageAsync(physicalPath)
         if (!System.IO.File.Exists(physicalPath))
         {
-             ModelState.AddModelError(nameof(model.ContractPath), "文件上传失败或已丢失，请重新上传。");
+             ModelState.AddModelError(nameof(model.ContractPath), "File upload failed or missing. Please re-upload.");
              return View(model);
         }
     }
-    catch (ArgumentException) // 捕获路径遍历攻击尝试
+    catch (ArgumentException) // Catch path traversal attack attempts
     {
         return BadRequest();
     }
 
-    // 2. 业务落库 (仅存储逻辑路径)
-    // DB 存储示例: "contract/2026/01/14/uuid.pdf"
+    // 2. Persist to Database (Store only the Logical Path)
+    // DB Entry Example: "contract/2026/01/14/uuid.pdf"
     var contract = new Contract 
     { 
         FilePath = model.ContractPath,
@@ -165,11 +165,11 @@ public async Task<IActionResult> UpdateContract(UpdateContractViewModel model)
 
 ```
 
-### 步骤 4：分发与下载
+### 第4步：分发与下载
 
-当需要显示文件时，使用 `StorageService` 将其转换为可访问的互联网 URL。
+在Razor视图中，使用 `StorageService` 将逻辑路径转换为可访问的URL。
 
-**对于公共文件：**
+**对于公开文件：**
 
 ```html
 @inject Aiursoft.Template.Services.FileStorage.StorageService Storage
@@ -186,105 +186,97 @@ public async Task<IActionResult> UpdateContract(UpdateContractViewModel model)
 <a href="@Storage.RelativePathToInternetUrl(Model.ContractPath, isVault: true)" 
    download="contract.pdf"
    class="btn btn-secondary">
-    下载合同
+    Download Contract
 </a>
 
 ```
 
 > **重要**：
-> * 对于私有文件，务必设置 `isVault: true`。
-> * 系统会自动生成一个包含加密签名的 `?token=...`。
-> * 即使用户把这个 URL 发给别人，60分钟后也会失效。
+> * 对于私有文件，始终设置 `isVault: true`。
+> * 系统会自动生成一个经过密码学签名的 `?token=...`。
+> * 即使 URL 被分享，也将在 60 分钟后过期。
 > 
 > 
 
 **支持的动态参数（仅限图片）：**
 
-* `?w=200`：按比例缩放宽度至 200px。
+* `?w=200`：将宽度缩放至 200px（保持宽高比）。
 * `?square=true`：居中裁剪为正方形。
-* **默认行为**：所有图像下载请求将**自动移除 EXIF 信息**（GPS、相机设置），保护用户隐私。
+* **默认行为**：所有图片请求 **自动移除 EXIF 元数据**（GPS 信息、相机设置），以保护用户隐私。
 
 ---
 
-## 4. 架构深度解析 (Architecture)
+## 4. 架构深度解析
 
-本系统将磁盘划分为四个区域，通过 `StorageService` 进行透明路由。
+系统将磁盘划分为四个区域，通过 `StorageService` 透明路由。
 
 ### 1. 目录结构
 
 ```text
-/data (存储根)
-├── Workspace/        # [Source of Truth] 公共原始数据区
-│   └── avatar/       # 公共文件：仅供上传写入，不对外直接暴露
+/data (Storage Root)
+├── Workspace/        # [Source of Truth] Public raw data area
+│   └── avatar/       # Public files: Upload-only, not directly exposed
 │
-├── Vault/            # [Private Storage] 私有原始数据区 🔒
-│   └── contract/     # 私有文件：需要token才能访问
+├── Vault/            # [Private Storage] Private raw data area 🔒
+│   └── contract/     # Private files: Token required for access
 │
-├── ClearExif/        # [Privacy Layer] 隐私清洗区 (缓存)
-│   ├── Workspace/    # 公共文件的EXIF清理副本
-│   │   └── avatar/
-│   └── Vault/        # 私有文件的EXIF清理副本
-│       └── contract/
+├── ClearExif/        # [Privacy Layer] Privacy sanitization (Cache)
+│   ├── Workspace/    # EXIF-cleared copies for public files
+│   └── Vault/        # EXIF-cleared copies for private files
 │
-└── Compressed/       # [Cache Layer] 缩略图区 (缓存)
-    ├── Workspace/    # 公共文件的压缩副本
-    │   └── avatar/
-    └── Vault/        # 私有文件的压缩副本
-        └── contract/
+└── Compressed/       # [Cache Layer] Thumbnail area (Cache)
+    ├── Workspace/    # Compressed copies for public files
+    └── Vault/        # Compressed copies for private files
 
 ```
 
 ### 2. 路径翻译机制
 
-`StorageService` 作为一个 **智能网关**，将用户定义的逻辑路径映射到不同的物理区域，实现“透明化安全保护”。
+`StorageService` 作为**智能网关**，将逻辑路径映射到不同的物理区域。
 
-**公共文件（工作区）：**
+**公共文件（Workspace）：**
 
-| 用户请求 (API) | 逻辑路径 (内部) | 实际物理操作 (物理) | 说明 |
+| 请求（API） | 逻辑路径（内部） | 物理操作 | 说明 |
 | --- | --- | --- | --- |
-| **上传** | `avatar/img.png` | 写入 `/data/Workspace/avatar/img.png` | 原始文件存入但永不流出 |
-| **下载原始文件** | `avatar/img.png` | 读取 `/data/ClearExif/Workspace/avatar/img.png` | 自动清除隐私信息 (Copy on Write) |
-| **下载缩略图** | `avatar/img.png?w=200` | 读取 `/data/Compressed/Workspace/avatar/img_w200.png` | 自动压缩以实现更快的传输速度 |
+| **上传** | `avatar/img.png` | 写入 `/data/Workspace/...` | 原始文件保存但永不暴露 |
+| **下载原始文件** | `avatar/img.png` | 读取自 `/data/ClearExif/...` | 隐私信息自动清除 |
+| **下载缩略图** | `avatar/img.png?w=200` | 读取自 `/data/Compressed/...` | 压缩后传输 |
 
-**私有文件（保险库）：**
+**私有文件（Vault）：**
 
-| 用户请求 (API) | 逻辑路径 (内部) | 实际物理操作 (物理) | 备注 |
+| 请求（API） | 逻辑路径（内部） | 物理操作 | 说明 |
 | --- | --- | --- | --- |
-| **上传** | `contract/doc.pdf` | 写入 `/data/Vault/contract/doc.pdf` | 与公共存储严格隔离 |
-| **下载** | `contract/doc.pdf` | 读取 `/data/Vault/contract/doc.pdf` | **需有效令牌** |
-| **下载图片** | `contract/scan.jpg` | 读取 `/data/ClearExif/Vault/contract/scan.jpg` | 令牌 + EXIF 清除 |
-| **下载缩略图** | `contract/scan.jpg?w=200` | 读取 `/data/Compressed/Vault/contract/scan_w200.jpg` | 令牌 + 压缩 |
+| **上传** | `contract/doc.pdf` | 写入 `/data/Vault/...` | 与公共存储隔离 |
+| **下载** | `contract/doc.pdf` | 读取自 `/data/Vault/...` | **需要令牌** |
+| **下载图片** | `contract/scan.jpg` | 读取自 `/data/ClearExif/...` | 需要令牌且 EXIF 信息已清除 |
 
 ---
 
-## 5. Token 安全机制 (Deep Dive)
+## 5. Token 安全机制（深入解析）
 
 ### 工作原理
 
-1. **令牌生成**：调用 `RelativePathToInternetUrl(path, isVault: true)` 时，系统使用 ASP.NET Core 的 `IDataProtectionProvider` 生成令牌：
-* 文件路径被加密
-* 过期时间戳（生成后60分钟）被嵌入
-* 加密签名防止篡改
+1. **生成**：调用 `RelativePathToInternetUrl(path, isVault: true)` 时，系统使用 ASP.NET Core 的 `IDataProtectionProvider`：
+* 文件路径被加密。
+* 嵌入过期时间戳（60 分钟）。
+* 添加加密签名以防止篡改。
 
+2. **格式**：加密后的 base64 编码字符串。
+3. **验证**：在下载请求时，系统会验证：
+* Token 未过期。
+* Token 未被篡改。
+* 解密后的路径与请求的路径匹配（防止使用 File A 的 Token 下载 File B）。
 
-2. **令牌格式**：加密后的 base64 编码字符串。
-3. **令牌验证**：在下载请求时，系统会自动验证：
-* 令牌未过期
-* 令牌未被篡改
-* 请求的路径与令牌中授权的路径匹配（路径绑定，防止拿A文件的Token下B文件）
+### 程序化 Token 生成
 
-
-
-### 代码方式生成令牌
-
-如果需要在后端代码中生成下载令牌（例如发送邮件附件链接）：
+如果需要在后端代码中生成安全 URL（例如，用于邮件附件）：
 
 ```csharp
 public class DocumentService(StorageService storage)
 {
     public string GetSecureDownloadUrl(string logicalPath)
     {
-        // 生成一个限时的、加密的完整 URL
+        // Generates a time-limited, encrypted full URL
         return storage.RelativePathToInternetUrl(logicalPath, isVault: true);
     }
 }
@@ -293,13 +285,13 @@ public class DocumentService(StorageService storage)
 
 ---
 
-## 6. 常见问题 (FAQ)
+## 6. 常见问题
 
-**Q: 为什么上传接口 (`FilesController`) 要设计成接收 `subfolder` 路由参数？**
-A: 为了实现**存储桶隔离**。前端指定 `/upload/avatar`，后端文件就物理落盘在 `.../avatar/` 目录下。配合 ViewModel 中的正则校验 `^avatar/.*`，可以从根源上防止用户将“聊天图片”上传后伪造成“头像”提交，杜绝了跨业务模块的文件引用风险。
+**Q: 为什么上传接口（`FilesController`）使用 `subfolder` 路由参数？**
+A: 为了实现 **存储桶隔离**。前端指定 `/upload/avatar`，后端将其保存在 `.../avatar/` 目录下。结合正则验证（`^avatar/.*`），可防止用户上传“聊天图片”并提交为“头像”，从而消除跨模块文件引用的风险。
 
-**Q: 只有图片会被清除 EXIF 吗？**
-A: 是的。系统会自动检测 MIME 类型和文件头。如果是 PDF 或 ZIP 等非图片文件，会直接流式传输，不进行 ImageSharp 处理。
+**Q: EXIF 数据剥离是否仅应用于图片？**
+A: 是的。系统会检测 MIME 类型和文件头。非图片文件（如 PDF 或 ZIP）会直接流式传输，不进行处理。
 
-**Q: 如果我想修改 Token 的过期时间怎么办？**
-A: 在 `StorageService.GetDownloadToken` 方法中，修改 `TimeSpan.FromMinutes(60)` 即可。
+**Q: 如何修改令牌过期时间？**
+A: 在 `StorageService.GetToken` 方法中，只需修改 `TimeSpan.FromMinutes(60)` 的值即可。
