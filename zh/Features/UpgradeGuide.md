@@ -110,7 +110,7 @@ find . -type f -name "*.resx" -exec rm -f {} +
 find . -type f -name "*.csproj" -exec rm -f {} +
 find . -type f -name "*.png" -exec rm -f {} +
 find . -type f -name "*.svg" -exec rm -f {} +
-find . -type f -name "package-lock.json“ -exec rm -f {} +
+find . -type f -name "package-lock.json" -exec rm -f {} +
 echo -e "${YELLOW}Removed all template .resx files (Keeping yours strictly).${NC}"
 
 echo -e "${BLUE}=== Step 5: Committing Template State ===${NC}"
