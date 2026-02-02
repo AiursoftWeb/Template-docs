@@ -139,6 +139,7 @@ plugins:
             第十一步 - 本地化应用以面向全球用户: "Step 11 - Localize Application for Global Users"
             第十二步 - 发布应用到真实的服务器: "Step 12 - Deploy Application to a Real Server"
             第十三步 - 课后练习: "Step 13 - After-Class Exercises"
+            全局设置: "Global Settings"
   - offline
   - same-dir
   - search
@@ -171,6 +172,7 @@ nav:
     - 接收文件: Features/SaveFile.md
     - 渲染日期时间: Features/DateTime.md
     - 实体建模规范: Features/EntityDesign.md
+    - 全局设置: Features/GlobalSettings.md
     - 后台任务支持: Features/BackgroundJob.md
     - 升级指南: Features/UpgradeGuide.md
   - 快速入门:
