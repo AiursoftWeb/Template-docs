@@ -1,117 +1,109 @@
-# Aiursoft.Template 后台任务系统使用指南
+# Aiursoft.Template 后台任务系统
 
-`Aiursoft.Template` 内置了一套轻量级、无需额外基础设施（如 Redis）的后台任务管理系统。它运行在应用程序进程内，支持依赖注入，非常适合处理“即发即弃”（Fire-and-forget）的异步任务。
+`Aiursoft.Template` 集成了一个强大且可观测的后台任务系统，由 [Aiursoft.Canon](https://github.com/AiursoftWeb/Aiursoft.Canon) 提供支持。该系统允许您在不阻塞主请求线程的情况下运行重型或定期任务（如发送电子邮件、清理文件或同步数据）。
 
-## 核心特性
+## 核心架构
 
-- **零依赖**：基于内存（`ConcurrentDictionary`），无需配置外部数据库或消息队列。
-- **依赖注入支持**：每个任务执行时都会创建一个全新的 `IServiceScope`，可以安全地使用 Scoped 服务（如数据库上下文 `DbContext`）。
-- **灵活的并发控制**：通过 `QueueName` 控制任务是并行还是串行执行。
-- **可视化面板**：提供 UI 界面查看任务状态（排队中、进行中、成功、失败）和取消任务。
+该系统基于 `Aiursoft.Canon` 的多个层级构建：
 
-## 如何使用
+1.  **ServiceTaskQueue**：一个命名、按队列串行的任务引擎，具有完整的状态跟踪。
+2.  **BackgroundJobs**：一个全局注册表，允许按类型发现和触发作业。
+3.  **ScheduledTasks**：一个基于定时器的系统，用于按定期计划运行作业。
 
-### 1. 注入服务
+## 主要特性
 
-在你的 Controller 或 Service 中注入 [BackgroundJobQueue](file:///home/anduin/Source/Repos/Aiursoft/aspnetcore-web/Template/src/Aiursoft.Template/Services/BackgroundJobs/BackgroundJobQueue.cs#10-190)：
+-   **可观测性**：实时跟踪任务状态（排队中、进行中、成功、失败、已取消）。
+-   **管理看板**：内置在 `/Jobs` 的 UI 界面，用于查看历史记录并手动触发作业。
+-   **依赖注入**：为每个任务运行自动创建一个全新的 `IServiceScope`，可以安全地使用 Scoped 服务（如 `DbContext`）。
+-   **灵活调度**：轻松为任何已注册的作业附加定期计划。
+-   **错误报告**：直接在管理 UI 中捕获并显示异常消息，方便调试。
+
+## 如何定义后台任务
+
+要创建新的后台任务，请实现 `IBackgroundJob` 接口。
 
 ```csharp
-public class MyController(BackgroundJobQueue backgroundJobQueue) : Controller
+using Aiursoft.Canon.BackgroundJobs;
+
+public class MyBackgroundJob(ILogger<MyBackgroundJob> logger, MyDbContext db) : IBackgroundJob
 {
-    // ...
+    // 在管理看板中显示的元数据
+    public string Name => "我的后台任务";
+    public string Description => "此任务每小时执行一次重型操作。";
+
+    public async Task ExecuteAsync()
+    {
+        logger.LogInformation("开始执行后台工作...");
+        
+        // 您可以在这里安全地使用注入的 Scoped 服务（如 'db'）。
+        var count = await db.Users.CountAsync();
+        
+        await Task.Delay(5000); // 模拟工作
+        
+        logger.LogInformation("工作完成。用户计数：{Count}", count);
+    }
 }
 ```
 
-### 2. 发布任务
+## 注册与配置
 
-使用 [QueueWithDependency](file:///home/anduin/Source/Repos/Aiursoft/aspnetcore-web/Template/src/Aiursoft.Template/Services/BackgroundJobs/BackgroundJobQueue.cs#16-42) 方法发布任务。这是最常用的方法，因为它为你自动处理了依赖注入的作用域。
+在 `Startup.cs` 的 `ConfigureServices` 方法中注册您的作业。
+
+### 1. 初始化引擎
+```csharp
+// 注册 ServiceTaskQueue + TaskQueueWorkerService
+services.AddTaskQueueEngine();
+
+// 注册基于定时器的托管服务
+services.AddScheduledTaskEngine();
+```
+
+### 2. 注册您的作业
+```csharp
+// 注册为单次作业（可以从 /Jobs 手动触发）
+services.RegisterBackgroundJob<MyBackgroundJob>();
+
+// 注册并捕获描述符以附加计划
+var cleanupJob = services.RegisterBackgroundJob<OrphanAvatarCleanupJob>();
+```
+
+### 3. 附加计划（可选）
+```csharp
+services.RegisterScheduledTask(
+    registration: cleanupJob,
+    period:       TimeSpan.FromHours(6),   // 每 6 小时运行一次
+    startDelay:   TimeSpan.FromMinutes(5)  // 应用程序启动后的初始延迟
+);
+```
+
+## 管理看板
+
+`Aiursoft.Template` 包含一个内置的管理界面，位于 `/Jobs`。
+
+-   **已注册作业**：系统中所有可用作业及其说明的列表。
+-   **立即触发**：一个手动将任何作业排入立即运行队列的按钮。
+-   **历史记录**：最近执行的日志，显示开始时间、持续时间和状态。
+-   **错误详情**：如果任务失败，此处将显示异常消息，以便于调试。
+
+## 以编程方式触发作业
+
+虽然大多数作业按计划运行，但您也可以从代码中手动触发它们（例如，在用户操作后的控制器中）：
 
 ```csharp
-// 示例：发布一个发送邮件的任务
-backgroundJobQueue.QueueWithDependency<IEmailSender>(
-    queueName: "EmailQueue", // 队列名称
-    jobName: $"Send welcome email to {user.Email}", // 任务名称（用于显示）
-    job: async (emailSender) => // 这里拿到的 emailSender 是在独立 Scope 中的
+public class MyController(BackgroundJobRegistry registry) : Controller
+{
+    public IActionResult RunNow()
     {
-        await emailSender.SendEmailAsync(user.Email, "Welcome", "...");
-    });
+        // 立即在后台将任务排队
+        registry.TriggerNow<MyBackgroundJob>();
+        return Ok("任务已排队！");
+    }
+}
 ```
 
-## 核心概念：队列与并发 (Queue & Concurrency)
+## 最佳实践
 
-本系统的核心在于 `queueName` 参数，它决定了任务的执行方式：
-
-- **串行执行（Sequential）**：
-  如果你希望任务**按顺序**一个接一个执行，请使用**相同**的 `queueName`。
-  *场景示例*：导出报表、生成连续的日志文件、处理必须按顺序到达的 webhook。
-
-- **并行执行（Parallel）**：
-  如果你希望任务**同时**执行，互不阻塞，请为每个任务使用**唯一**的 `queueName`（例如 `Guid.NewGuid().ToString()`）。
-  *场景示例*：发送大量通知邮件、处理用户上传的多个独立文件。
-
-### 示例对比
-
-```csharp
-// 串行：任务 B 会等待任务 A 完成后才开始
-backgroundJobQueue.QueueWithDependency<ILogger>(
-    queueName: "ReportQueue", 
-    jobName: "Task A", 
-    job: async (logger) => { await Task.Delay(5000); });
-
-backgroundJobQueue.QueueWithDependency<ILogger>(
-    queueName: "ReportQueue", // 相同的队列名
-    jobName: "Task B", 
-    job: async (logger) => { ... });
-
-// 并行：任务 X 和 任务 Y 会几乎同时开始
-backgroundJobQueue.QueueWithDependency<ILogger>(
-    queueName: Guid.NewGuid().ToString(), // 唯一的队列名
-    jobName: "Task X", 
-    job: async (logger) => { ... });
-
-backgroundJobQueue.QueueWithDependency<ILogger>(
-    queueName: Guid.NewGuid().ToString(), // 唯一的队列名
-    jobName: "Task Y", 
-    job: async (logger) => { ... });
-```
-
-## 最佳实践 (Best Practices)
-
-1. **绝对禁止在后台任务中使用 Controller 中的依赖**
-   后台任务是**无头（Headless）**的，它在完全独立的线程和 Scope 中运行。
-   > ⛔ **危险操作**：
-   > *   不要在闭包中使用 `HttpContext`、`User`、`ModelState`。
-   > *   **不要**直接使用 Controller 构造函数中注入的服务（例如 `_context` 或 `_userManager`）。因为当后台任务运行时，Controller 本身可能已经被销毁，或者那些服务是基于 HTTP 请求 Scope 的，在后台线程中已失效。
-   >
-   > **正确做法**：
-   > 只使用通过 `QueueWithDependency<T>` 泛型注入进来的那个服务 `T`。如果你需要多个服务（例如同时需要 `EmailSender` 和 `LogService`），**不要**试图在一个任务里注入多个，也不要从 Controller 闭包里“偷”一个进去。
-   >
-   > **多服务注入模式（Composite Service Pattern）**：
-   > 如果任务逻辑复杂，依赖多个服务，请创建一个新的聚合服务。
-   > *   错误：试图在 Lambda 里同时用 A 和 B。
-   > *   正确：定义一个 `JobHandlerService`，在它的构造函数里注入 A 和 B。然后 `QueueWithDependency<JobHandlerService>`。这样依赖注入容器会为你正确管理 A 和 B 的生命周期。
-
-2. **注意数据生命周期（Data Persistance）**
-   这是一个**内存（In-Memory）** 队列系统。
-   > ⚠️ **警告**：如果应用程序重启或崩溃，所有**等待中（Pending）**和**进行中（Processing）**的任务都会丢失。
-   对于极其关键、绝对不能丢失的任务（如支付回调处理），请使用持久化的队列系统（如 RabbitMQ 或基于数据库的任务表），或者确保你的业务逻辑允许任务偶尔丢失（或有重试机制）。
-
-3. **异常处理**
-   系统会自动捕获任务抛出的异常，并将任务标记为 `Failed`，你可以在面板中看到错误信息。建议在任务内部也进行适当的 `try-catch`，特别是如果你需要记录特定的业务日志。系统**不会**自动重试失败的任务。
-
-4. **避免长时间阻塞主线程**
-   [QueueWithDependency](file:///home/anduin/Source/Repos/Aiursoft/aspnetcore-web/Template/src/Aiursoft.Template/Services/BackgroundJobs/BackgroundJobQueue.cs#16-42) 本身是极快的（只是将任务放入内存字典），不会阻塞主线程。真正的繁重工作是在后台线程池中完成的。
-
-5. **利用强类型依赖**
-   始终优先使用泛型版本 `QueueWithDependency<TService>`。这不仅让代码更加整洁，也强制你思考任务真正依赖的服务，避免在一个 Scope 中杂乱地获取服务。
-
-## 常见问答
-
-**Q: 为什么我的任务没有执行？**
-A: 检查是否有死锁，或者是否有同一个 `queueName` 的前序任务卡住了（死循环或无限等待）。因为同一个队列是串行的，前一个不结束，后一个不会开始。
-
-**Q: 我可以在任务里访问数据库吗？**
-A: 可以，而且非常方便。通过 `QueueWithDependency<TemplateDbContext>` 即可获得一个独立的、Scoped 的数据库上下文连接。用完后系统会自动释放它。
-
-**Q: 如何清理历史任务记录？**
-A: 系统内置了定时清理机制（Cron Job）。默认情况下，[QueueWorkerService](file:///home/anduin/Source/Repos/Aiursoft/aspnetcore-web/Template/src/Aiursoft.Template/Services/BackgroundJobs/QueueWorkerService.cs#8-122) 会每 5 分钟运行一次清理逻辑，移除 1 小时前完成的任务记录，防止内存无限增长。
+1.  **无状态性**：作业理想情况下应该是无状态的。如果需要持久化状态，请使用数据库。
+2.  **并发控制**：相同名称队列中的任务将串行运行。默认情况下，`TriggerNow<T>` 使用类型名称作为队列名称。
+3.  **作用域安全**：始终使用通过构造函数注入提供的依赖项。系统确保这些依赖项是从全新的作用域中解析的。
+4.  **日志记录**：在您的作业中使用 `ILogger`。日志将被您配置的记录器（如 ClickHouse）捕获。

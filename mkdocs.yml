@@ -122,7 +122,7 @@ plugins:
             接收文件: File Upload
             渲染日期时间: DateTime Rendering
             实体建模规范: Entity Design Guidelines
-            后台任务支持: Background Job Support
+            "后台任务 (Canon)": Background Jobs (Canon)
             升级指南: Upgrade Guide
             快速入门: Quick Start
             开始之前: Before Starting
@@ -173,7 +173,7 @@ nav:
     - 渲染日期时间: Features/DateTime.md
     - 实体建模规范: Features/EntityDesign.md
     - 全局设置: Features/GlobalSettings.md
-    - 后台任务支持: Features/BackgroundJob.md
+    - "后台任务 (Canon)": Features/BackgroundJob.md
     - 升级指南: Features/UpgradeGuide.md
   - 快速入门:
     - 开始之前: Tutorial/before.md
