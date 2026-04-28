@@ -143,7 +143,7 @@ By adding `[NoBadWords]`, we tell ASP.NET Core to perform our custom sensitive w
 Everything is ready! Now we can test the new validation feature.
 
 1. **Rebuild and run the project**.
-2. **Log in** to an account (e.g., `admin` / `admin123`).
+2. **Log in** to an account (e.g., `admin` / `Admin@123456!`).
 3. Navigate to the **Create Document** page (`/Home/Index`) or **edit** an existing document.
 4. In the **Title** or **Content** input box, enter one of the sensitive words we defined in `BadWordFilterService`, such as "this is a badword".
 5. Click the "Convert and save" button to submit the form.

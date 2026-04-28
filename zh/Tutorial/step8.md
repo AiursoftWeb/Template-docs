@@ -143,7 +143,7 @@ public class IndexViewModel : UiStackLayoutViewModel
 一切准备就绪！现在我们可以来测试新的验证功能了。
 
 1.  **重新编译并运行项目**。
-2.  **登录**一个账户（例如 `admin` / `admin123`）。
+2.  **登录**一个账户（例如 `admin` / `Admin@123456!`）。
 3.  导航到**创建文档**页面 (`/Home/Index`) 或**编辑**一个已有的文档。
 4.  在**标题**或**内容**输入框中，输入我们在 `BadWordFilterService` 中定义的敏感词之一，例如 "this is a badword"。
 5.  点击“Convert and save”按钮提交表单。

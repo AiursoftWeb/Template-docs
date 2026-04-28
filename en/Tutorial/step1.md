@@ -182,7 +182,7 @@ By default, the application runs on `http://localhost:5000`. Now, you can open y
 You can log in using the default account. The default account information is as follows:
 
 * Username: `admin`
-* Password: `admin123`
+* Password: `Admin@123456!`
 
 ## Step 1.4 Configure the database used by the project (Optional)
 

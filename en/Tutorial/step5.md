@@ -475,7 +475,7 @@ Finally, to help users easily return to their document list from the edit page, 
 
 Now, there will be no more errors. You can run the application in anonymous mode, where you can only create and view HTML. After logging in, you can create, edit, and view your own document list.
 
-> The default user is `admin`, and the default password is `admin123`.
+> The default user is `admin`, and the default password is `Admin@123456!`.
 
 Of course, we haven't implemented the document deletion feature yet. We will implement this in the next step.
 
