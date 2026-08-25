@@ -1,4 +1,4 @@
-# File Storage & Upload Subsystem Integration Guide
+# File Storage and Upload Development Guidelines
 
 This module utilizes a **"Physically Isolated, Logically Unified"** architectural design, aimed at providing an industry-grade secure file storage solution.
 
@@ -9,11 +9,34 @@ The core design philosophy is the **"Logical Path"**:
 
 ---
 
-## 1. Core Rules (Strict Rules)
+## 1. Security Boundary and Development Rules
 
-1. **PROHIBITED**: Using traditional HTML `<input type="file">` controls. This significantly increases development workload, greatly expands the attack surface, and prevents access to advanced features like compression and privacy sanitization.
-2. **PROHIBITED**: Directly handling `IFormFile` within business Controllers. All file streams must be centrally managed by the `FilesController`.
-3. **PROHIBITED**: Manually concatenating physical paths (e.g., `Path.Combine(root, path)`) to access files. You must use `StorageService.GetFilePhysicalPath()` to leverage its built-in path traversal detection.
+`<vc:file-upload>` is the recommended browser upload component, not a security boundary. Client-side restrictions can be bypassed; every security decision must be enforced by the server.
+
+### Choose the Upload Path
+
+| Scenario | Recommended implementation | Security responsibility |
+| --- | --- | --- |
+| Standard browser upload | `<vc:file-upload>` + the common `FilesController` | Enforced by the signed grant and common upload pipeline |
+| Chunked upload, client-side encryption, streaming recording, or another special protocol | Dedicated controller | Must provide server-side validation and tests no weaker than the common pipeline |
+| Trusted server workflow such as import, transcoding, or a background job | `StorageService.SaveFromStream()` | The caller validates business format and size; `StorageService` enforces the path boundary and write operation |
+
+### Mandatory Rules
+
+1. Treat every external request, file name, logical path, extension, length, and payload as untrusted.
+2. Use the common upload pipeline for standard browser uploads. Its signed grant must bind the operation, logical path, Workspace/Vault area, size, extensions, and content-validation policy.
+3. A special upload endpoint must limit the request before reading its body and validate identity, authorization, file count, file name, actual length, extension, content, and target storage area on the server.
+4. Trusted server streams may be saved directly, but `SaveFromStream()` is not a file-type validator.
+5. Store only logical paths in databases and business APIs. Resolve physical files through `StorageService`; never concatenate an untrusted path with the storage root.
+6. Generic downloads must use `attachment` and `X-Content-Type-Options: nosniff`. Only re-encoded images or explicitly allowlisted media with a verified file signature may use `inline`.
+7. A ViewModel regular expression can restrict a business folder but cannot prove file ownership. Use a user-scoped folder or a persisted upload-ownership record when users must be isolated.
+
+### Prohibited Practices
+
+* Relying only on browser-side extension or size checks.
+* Accepting `IFormFile` in an arbitrary business controller and writing it directly to disk.
+* Accessing storage with `Path.Combine(storageRoot, untrustedPath)`.
+* Returning `inline` based on a user-provided extension or MIME type.
 
 ---
 
@@ -25,7 +48,7 @@ This module supports two completely isolated storage modes:
 | --- | --- | --- |
 | **Storage Location** | `/data/Workspace` | `/data/Vault` (Physically Isolated) |
 | **Access Rights** | Publicly accessible via URL | **Valid Token Required** |
-| **Token Expiry** | N/A | Default 60 minutes (HMAC-SHA256 Signed) |
+| **Token Expiry** | N/A | Default 60 minutes (protected by ASP.NET Core Data Protection) |
 | **Use Cases** | Avatars, product images, public docs | ID cards, contracts, invoices, sensitive data |
 | **URL Format** | `/download/avatar/.../img.png` | `/download-private/contract/.../doc.pdf?token=...` |
 | **Upload Param** | Default (`useVault=false`) | `useVault=true` |
@@ -34,9 +57,9 @@ This module supports two completely isolated storage modes:
 
 ## 3. Quick Integration: Four-Step Process
 
-### Step 1: UI Integration (ViewComponent)
+### Step 1: Recommended UI Integration (ViewComponent)
 
-Use the `vc:file-upload` component in your `.cshtml` pages.
+Use the `vc:file-upload` component for standard browser uploads in `.cshtml` pages. A special upload protocol may use another UI, but it must follow the server-side rules above.
 
 **Scenario A: Public Files (e.g., Avatars)**
 
@@ -87,7 +110,7 @@ Use the `vc:file-upload` component in your `.cshtml` pages.
 
 The ViewModel receives the **Logical Path String** returned after a successful upload. This is where the first layer of validation (Bucket Locking) occurs.
 
-> **Concept**: A Logical Path is neither a URL nor a physical path; it is a "virtual path" representing the file's location. This allows the system to handle storage details automatically and prevents path vulnerability attacks.
+> **Concept**: A logical path is neither a URL nor a physical path. It identifies a storage location. Logical-path validation prevents cross-feature references, but user-level ownership must still be validated separately.
 
 **For Public Files:**
 
@@ -122,7 +145,7 @@ public class UpdateContractViewModel
 
 ### Step 3: Controller Business Logic (Defensive Programming)
 
-**NEVER** trust the string submitted by the frontend. You must call `StorageService` for physical file validation before saving to the database.
+**NEVER** trust a string submitted by the frontend. Before saving it to the database, validate the logical path, physical file existence, and the current user's permission to reference that file.
 
 ```csharp
 [HttpPost]
@@ -294,7 +317,7 @@ public class DocumentService(StorageService storage)
 A: To implement **Bucket Isolation**. Frontend specifies `/upload/avatar`, and the backend saves it under the `.../avatar/` directory. Combined with Regex validation (`^avatar/.*`), this prevents users from uploading a "chat image" and submitting it as an "avatar," eliminating cross-module file reference risks.
 
 **Q: Is EXIF stripping applied only to images?**
-A: Yes. The system detects MIME types and file headers. Non-image files like PDFs or ZIPs are streamed directly without processing.
+A: Yes. Non-image files are returned as `application/octet-stream` with `attachment` and `nosniff` by default. They are never rendered inline from a user-provided extension.
 
 **Q: How do I change the token expiration time?**
 A: In the `StorageService.GetToken` method, simply modify the `TimeSpan.FromMinutes(60)` value.
