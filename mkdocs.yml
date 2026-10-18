@@ -2,7 +2,7 @@ site_name: Aiursoft Template Documentation
 site_description: The official documentation for Aiursoft Project Template.
 
 # Repository
-repo_name: aiursoft/template-docs
+repo_name: AiursoftWeb/template-docs
 repo_url: https://github.com/AiursoftWeb/template-docs
 edit_uri: ""
 
