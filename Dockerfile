@@ -1,7 +1,7 @@
 # ============================
 # Prepare Build Environment
 # ============================
-FROM hub.aiursoft.com/aiursoft/internalimages/ubuntu:latest as builder
+FROM hub.aiursoft.com/aiursoft/anduinos:resolute AS builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
