@@ -1,0 +1,47 @@
+site_name: Aiursoft Template Documentation
+site_description: The official documentation for Aiursoft Project Template.
+repo_name: AiursoftWeb/Template-Docs
+repo_url: https://github.com/AiursoftWeb/Template-Docs
+edit_uri: "edit/master/Docs/"
+docs_dir: Docs
+
+markdown_extensions:
+  - md_in_html
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - abbr
+  - pymdownx.snippets
+  - pymdownx.tilde
+  - def_list
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - attr_list
+
+nav:
+  - Home:
+    - Welcome: README.md
+  - Features:
+    - View Development Best Practices: Features/Views.md
+    - Model Validation: Features/Validation.md
+    - File Upload: Features/SaveFile.md
+    - DateTime Rendering: Features/DateTime.md
+    - Entity Design Guidelines: Features/EntityDesign.md
+    - Global Settings: Features/GlobalSettings.md
+    - Background Jobs (Canon): Features/BackgroundJob.md
+    - Upgrade Guide: Features/UpgradeGuide.md
+  - Quick Start:
+    - Before Starting: Tutorial/before.md
+    - Step 1 - Create a New Project: Tutorial/step1.md
+    - Step 2 - Add and Debug Third-Party Libraries: Tutorial/step2.md
+    - Step 3 - Add a New Page: Tutorial/step3.md
+    - Step 4 - Add a New Data Model and Modify Database Structure: Tutorial/step4.md
+    - Step 5 - Save Data to Database: Tutorial/step5.md
+    - Step 6 - Admin Dashboard and New Permissions: Tutorial/step6.md
+    - Step 7 - Add New Configuration Items with Environment Variable Support: Tutorial/step7.md
+    - Step 8 - Add Custom Validation: Tutorial/step8.md
+    - Step 9 - Allow Users to Upload Files from Frontend: Tutorial/step9.md
+    - Step 10 - Soft Delete and Recycle Bin Based on Background Tasks: Tutorial/step10.md
+    - Step 11 - Localize Application for Global Users: Tutorial/step11.md
+    - Step 12 - Deploy Application to a Real Server: Tutorial/step12.md
+    - Step 13 - After-Class Exercises: Tutorial/step13.md

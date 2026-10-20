@@ -10,4 +10,4 @@ This tutorial will take approximately 30 minutes. By the end, you'll have a full
 
 Wishing you a smooth 30-minute adventure, and may you quickly become an Aiursoft Template master, fulfilling your web development dreams!
 
-[Start Creating Project](./step1.md){ .md-button .md-button--primary }
+[Start Creating Project](./step1.md)

@@ -1,6 +1,6 @@
 # Aiursoft Template Tutorial - Step 1 - Create New Project
 
-![preview-new-project](./assets/new-login.png)
+![preview-new-project](./images/new-login.png)
 
 ## Step 1.1 Prepare Development Environment
 
