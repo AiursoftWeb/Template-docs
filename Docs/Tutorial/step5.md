@@ -227,7 +227,7 @@ Modify the `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` file, and add the fo
 </div>
 ```
 
-!!! tip "<input type="hidden" /> usage"
+!!! tip "Hidden input usage"
 
     The `<input type="hidden" />` tag is used to store data in a form that doesn't need to be directly edited by the user but must be submitted to the server. Here, we use it to store `DocumentId` so that the server can identify which document this is when the form is submitted.
 
