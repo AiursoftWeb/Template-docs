@@ -1,28 +1,28 @@
-# Aiursoft Template Tutorial - Step 2 - 添加和调试第三方库
+# Aiursoft Template Tutorial - Step 2 - Add and Debug Third-Party Libraries
 
-![rider-verify](./assets/rider-verify.png)
+![rider-verify](./images/rider-verify.png)
 
-## Step 2.1 添加第三方库
+## Step 2.1 Add Third-Party Library
 
-显然，我们本来的任务是创建一个将 markdown 转换为 HTML 的应用。为此，我们需要一个能够将 markdown 转换为 HTML 的库。
+Obviously, our original task is to create an application that converts markdown to HTML. For this purpose, we need a library capable of converting markdown to HTML.
 
-在这个教程里，我们选择 [Markdig](https://github.com/xoofx/markdig)。这是一款功能强大且易于使用的 markdown 解析器。
+In this tutorial, we choose [Markdig](https://github.com/xoofx/markdig). It is a powerful and easy-to-use markdown parser.
 
-为了安装 Markdig，我们需要使用 NuGet 包管理器。你可以使用以下命令来安装它：
+To install Markdig, we need to use the NuGet package manager. You can use the following command to install it:
 
 ```bash title="安装 Markdig"
 cd ./src/MyOrg.MarkToHtml/
 dotnet add package Markdig
 ```
 
-接下来，我们额外安装一个能够避免生成的 HTML 被 XSS 攻击的库，叫做 [HtmlSanitizer](https://github.com/mganss/HtmlSanitizer)。你可以使用以下命令来安装它：
+Next, we'll install an additional library that prevents the generated HTML from being vulnerable to XSS attacks, called [HtmlSanitizer](https://github.com/mganss/HtmlSanitizer). You can install it using the following command:
 
 ```bash title="安装 HtmlSanitizer"
 # cd ./src/MyOrg.MarkToHtml/
 dotnet add package HtmlSanitizer
 ```
 
-你会注意到，在上面的命令执行完成后，`MyOrg.MarkToHtml.csproj` 文件中添加了对 Markdig 和 HtmlSanitizer 的引用，它看起来可能像这样：
+You will notice that after the above command is executed, references to Markdig and HtmlSanitizer have been added to the `MyOrg.MarkToHtml.csproj` file, which might look like this:
 
 ```xml title="MyOrg.MarkToHtml.csproj"
 <ItemGroup>
@@ -31,13 +31,13 @@ dotnet add package HtmlSanitizer
 </ItemGroup>
 ```
 
-## Step 2.2 测试第三方库的工作能力 (可选)
+## Step 2.2 Test the functionality of third-party libraries (optional)
 
-!!! tip "这一步是完全可选的"
+!!! tip "This step is entirely optional"
 
-    这一步是完全可选的，是为了演示如何调试第三方库。如果你相信 Markdig 能够正常工作，可以跳过这一步。
+    This step is entirely optional and is intended to demonstrate how to debug third-party libraries. If you trust that Markdig will work properly, you can skip this step.
 
-接下来，我们需要先测试一下 Markdig 和 HtmlSanitizer 是否能正常工作。为此，我们直接修改 `./src/MyOrg.MarkToHtml/Program.cs` 文件，将 `Main` 方法原有内容暂时注释，然后暂时添加用于测试 Markdig 的以下代码：
+Next, we need to first test whether Markdig and HtmlSanitizer can function correctly. To do this, directly modify the `./src/MyOrg.MarkToHtml/Program.cs` file, temporarily comment out the original content in the `Main` method, and temporarily add the following code for testing Markdig:
 
 ```csharp title="测试 Markdig，Program.cs"
 using Aiursoft.DbTools;
@@ -71,14 +71,14 @@ public abstract class Program
 }
 ```
 
-接下来，我们可以再次运行项目来测试 Markdig 是否能正常工作：
+Next, we can run the project again to test whether Markdig works properly:
 
 ```bash
 # cd ./src/MyOrg.MarkToHtml/
 dotnet run
 ```
 
-可能会看到类似下面的输出：
+You might see output similar to the following:
 
 ```html title="Markdig 输出"
 <h1 id="hello-world">Hello World</h1>
@@ -88,9 +88,9 @@ dotnet run
 </blockquote>
 ```
 
-这证明 Markdig 能够成功地将 markdown 转换为 HTML。接下来，我们继续测试 HtmlSanitizer。
+This proves that Markdig can successfully convert markdown to HTML. Next, we continue testing HtmlSanitizer.
 
-我们可以修改 `Program.cs` 文件中的测试代码，添加对 HtmlSanitizer 的使用：
+We can modify the test code in the `Program.cs` file to include the use of HtmlSanitizer:
 
 ```csharp title="测试 HtmlSanitizer，Program.cs"
 using Aiursoft.DbTools;
@@ -120,17 +120,17 @@ public abstract class Program
 }
 ```
 
-这次，预计输出将会是：
+This time, the expected output will be:
 
 ```html title="HtmlSanitizer 输出"
 <div style="background-color: rgba(0, 0, 0, 1)">Test<img src="https://www.example.com/test.png" style="margin: 10px"></div>
 ```
 
-可以注意到，所有潜在的 XSS 攻击向量都被移除了。说明 HtmlSanitizer 能够成功地清理 HTML。
+It can be noticed that all potential XSS attack vectors have been removed. This demonstrates that HtmlSanitizer successfully cleans HTML.
 
-## Step 2.3 恢复 `Program.cs` 文件
+## Step 2.3 Restore the Program.cs file
 
-现在，我们测试完成了，回滚 `Program.cs` 文件中的更改，恢复原有内容：
+Now that our testing is complete, revert the changes made to the Program.cs file and restore the original content:
 
 ```csharp title="恢复 Program.cs"
 using Aiursoft.DbTools;
@@ -152,18 +152,18 @@ public abstract class Program
 }
 ```
 
-## Step 2.4 安装前端的代码编辑器
+## Step 2.4 Install the frontend code editor
 
-考虑到我们需要在前端页面提供给用户编辑 Markdown 和预览 HTML 的功能，我们需要一个强大的前端代码编辑器。我们选择 [CodeMirror 5](https://codemirror.net/) 作为我们的前端代码编辑器。
+Considering we need to provide users with the ability to edit Markdown and preview HTML on the frontend page, we need a powerful frontend code editor. We choose [CodeMirror 5](https://codemirror.net/) as our frontend code editor.
 
-为了安装 CodeMirror 5，我们需要使用 npm 包管理器。你可以使用以下命令来安装它：
+To install CodeMirror 5, we need to use the npm package manager. You can use the following command to install it:
 
 ```bash title="安装 CodeMirror 5"
 cd ./src/MyOrg.MarkToHtml/wwwroot/
 npm install codemirror@5 --save
 ```
 
-你会注意到，在上面的命令执行完成后，`./src/MyOrg.MarkToHtml/wwwroot/package.json` 文件中添加了对 CodeMirror 的引用，它看起来可能像这样：
+You will notice that after the above command is executed, a reference to CodeMirror has been added to the `./src/MyOrg.MarkToHtml/wwwroot/package.json` file, which might look something like this:
 
 ```json title="package.json"
 {
@@ -180,6 +180,6 @@ npm install codemirror@5 --save
 }
 ```
 
-## 结语
+## Conclusion
 
-恭喜你完成了第二步！你现在已经成功地添加并测试了第三方库 Markdig， HtmlSanitizer 和 CodeMirror。通过合理地使用 Nuget、npm、GitHub，你可以轻松将前人的工作成果整合到你的项目中，并快速扩充你的项目功能。
+Congratulations on completing Step 2! You have now successfully added and tested the third-party libraries Markdig, HtmlSanitizer, and CodeMirror. By properly utilizing Nuget, npm, and GitHub, you can easily integrate the work of others into your project and quickly expand your project's functionality.

@@ -1,6 +1,6 @@
 # Aiursoft Template Tutorial - Step 5 - Save Data to Database
 
-![history-page](./assets/history-page.png)
+![history-page](./images/history-page.png)
 
 Next, we will continue expanding the previous example to allow users to save their markdown documents and later re-edit or even share them. To achieve this, we need to modify the controller and views so that users can create, view, edit, and delete their documents.
 

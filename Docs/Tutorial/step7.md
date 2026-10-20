@@ -1,6 +1,6 @@
 # Aiursoft Template Tutorial - Step 7 - Add a New Configuration Item and Support Environment Variables
 
-![configuration](./assets/configuration.png)
+![configuration](./images/configuration.png)
 
 As a site administrator, there may be some application configurations that the default settings cannot meet. We need to allow administrators to adjust certain configuration items themselves to change the application's default behavior, for example:
 

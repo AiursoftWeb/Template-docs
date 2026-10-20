@@ -1,6 +1,6 @@
 # Aiursoft Template Tutorial - Step 3 - Add a New Page
 
-![home-convert](./assets/home-convert.png)
+![home-convert](./images/home-convert.png)
 
 In the previous step, we successfully added the functionality to convert markdown to HTML. Next, we need to create a frontend page that allows users to input markdown and preview the generated HTML.
 

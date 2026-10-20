@@ -1,6 +1,6 @@
 # Aiursoft Template Tutorial - Step 6 - Admin Dashboard and New Permissions
 
-![admin-panel](./assets/admin-panel.png)
+![admin-panel](./images/admin-panel.png)
 
 As a site administrator, you might want a dedicated admin dashboard to manage users and content. You might also want special permission settings, such as changing the owner of a document or granting higher privileges to certain users. In this step, we'll implement these features.
 

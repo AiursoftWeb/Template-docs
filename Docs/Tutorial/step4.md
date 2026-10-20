@@ -1,7 +1,7 @@
 
 # Aiursoft Template Tutorial - Step 4 - Add a New Data Model and Modify the Database Schema
 
-![db-browser](./assets/db-browser.png)
+![db-browser](./images/db-browser.png)
 
 We can extend the previous example to allow users to save their Markdown documents and later re-edit or even share them. To achieve this, we need to add a new data model and modify the database schema.
 

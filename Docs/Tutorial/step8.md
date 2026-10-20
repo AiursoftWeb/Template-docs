@@ -1,6 +1,6 @@
 # Aiursoft Template Tutorial - Step 8 - Add Custom Validation
 
-![bad-words](./assets/bad-word.png)
+![bad-words](./images/bad-word.png)
 
 In previous steps, we have extensively used built-in ASP.NET Core validation attributes, such as `[Required]` and `[MaxLength]`, to ensure the basic validity of user input data. These attributes are tightly integrated with `ModelState`, greatly simplifying the data validation process.
 
