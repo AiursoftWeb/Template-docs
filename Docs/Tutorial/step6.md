@@ -104,7 +104,16 @@ Whenever a new permission is added, all three parameters should be fully filled 
 
 ## Step 6.3 Assign the New Permission to the Administrators Role
 
-Next, we need to assign the newly added permission to the `Administrators` role. No code changes are required—simply start the application.
+We have added the definitions. Now let's assign them through the existing role editor.
+No startup or seeding changes are needed.
+
+```bash
+dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```
+
+This starts the app with the new permission definitions.
+Sign out of the ordinary test account from Step 5 and sign in as **admin**.
+Open `http://localhost:5000/Roles`.
 
 !!! tip "Why do we need to manually assign the permission this time?"
 
@@ -119,6 +128,8 @@ Your existing login cookie contains the old permission claims; saving the role d
 
 If you still see a 403 page, check the role assignment and repeat the sign-out/sign-in step.
 Do not change SeedAsync to grant permissions on every startup.
+
+Press **Ctrl+C** before editing the next files.
 
 ## Step 6.4 Create an Admin Dashboard
 

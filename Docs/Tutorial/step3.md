@@ -670,6 +670,9 @@ Open the listening address in your browser.
 - Open the home page. You should see the Markdown input and HTML output editors.
 - Enter `# Hello from my page` and click **Convert to HTML**.
 - The output should contain `<h1`; the Preview tab should show a heading.
+- Return to Code and click Copy. Expect the button to show its copied feedback.
+- Click the theme switch in the header and wait for the page to refresh. Expect the editors to follow the theme.
+- Open Preview and click Print. Expect the browser's print dialog; cancel it when you are done checking.
 - Try `<script>alert(1)</script>`. It must not execute in the preview.
 - Open the browser console if the editor is missing: check the CodeMirror file checks from Step 2.
 

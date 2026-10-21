@@ -158,7 +158,8 @@ Open `http://localhost:5000` in the browser.
 This is a **fresh database** in the volume; it does not automatically contain the notes from development.
 Sign in with the initial administrator account.
 
-Open **Personal / Change Password** and change the development password.
+Open `http://localhost:5000/Manage/ChangePassword` and change the development password.
+You can also reach it through the personal account settings.
 Do this while the app is still private.
 
 ## Checkpoint 12B - Health and real data both work
