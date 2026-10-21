@@ -10,60 +10,29 @@ The goal of this step is to create a brand new project. We recommend using [Andu
 
     If you don't want to use AnduinOS, you can also develop on any operating system that supports .NET 10.0, such as Windows, macOS, or other Linux distributions.
 
-Before you begin, make sure you have installed `git`, `.NET 10.0 SDK`, and `docker`. On AnduinOS, you can use the following command to install these tools:
+Before you begin, install Git, the .NET 10 SDK, Node.js 24 with npm, Docker, and an editor. Use the instructions for your operating system: [.NET on Ubuntu](https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-install), [Node.js](https://nodejs.org/en/download), [Docker Engine](https://docs.docker.com/engine/install/ubuntu/), and [Visual Studio Code](https://code.visualstudio.com/docs/setup/linux). Package names differ between Ubuntu and AnduinOS releases; do not mix distribution-specific installation commands.
 
-```bash title="在 AnduinOS 上安装必要的工具"
-sudo apt install -y git dotnet docker.io
+Verify the development environment:
+
+```bash
+git --version
+dotnet --list-sdks  # Must include 10.0.x
+node --version     # Use v24.x
+npm --version
+docker --version
 ```
 
-.NET 10 SDK must be installed.
+Install the EF tool for the application's framework major version:
 
-```bash title="在 AnduinOS 上安装 .NET 10"
-sudo apt update
-sudo apt install dotnet10 -y
+```bash
+dotnet tool install --global dotnet-ef --version '10.*'
 ```
 
-After installing the .NET 10 SDK, you can use the following command to install EF Core tools:
-
-```bash title="安装 EF Core 工具"
-dotnet tool install --global dotnet-ef
-```
-
-After installing git, you must configure your username and email:
-
-```bash title="配置 git 用户名和邮箱"
-git config --global user.name "Your Name"
-git config --global user.email "YourEmail@domain.com"
-```
-
-You will need to install Node.js and npm to manage frontend dependencies. You can install them using the following command:
-
-```bash title="在 AnduinOS 上安装 Node.js 和 npm"
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg --yes
-NODE_MAJOR=24
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-sudo apt update
-sudo apt install nodejs -y
-node -v
-```
-
-You will need a code editor. We recommend using [Visual Studio Code](https://code.visualstudio.com/) or [Jetbrains Rider](https://docs.anduinos.com/Applications/Code-Editors/Jetbrains-Rider/Jetbrains-Rider.html). You can also install Visual Studio Code using the following command:
-
-```bash title="在 AnduinOS 上安装 Visual Studio Code"
-cd ~
-wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
-sudo install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
-sudo sh -c 'echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list'
-rm -f packages.microsoft.gpg
-sudo apt update
-sudo apt install code -y
-```
-
-After installation, you can launch Visual Studio Code by running the `code` command.
+If it is already installed, check `dotnet ef --version` and use `dotnet tool update --global dotnet-ef --version '10.*'` when needed. Add `$HOME/.dotnet/tools` to your PATH if commands cannot be found. Configure Git's author name and email for your own commits, and open the generated solution in your preferred editor.
 
 To create a new Aiursoft Template project, you need to install Voyager, the scaffolding tool for Aiursoft Template. You can install it using the following command:
 
-```bash title="安装 Voyager"
+```bash
 dotnet tool install --global Aiursoft.Voyager
 voyager --version
 ```
@@ -88,14 +57,14 @@ Here, our template is for creating an application that converts markdown to HTML
 
 First, create a new folder to store your project:
 
-```bash title="创建项目文件夹"
+```bash
 mkdir MyOrg.MarkToHtml
 cd MyOrg.MarkToHtml
 ```
 
 Then use voyager to initialize the project:
 
-```bash title="使用 Voyager 创建新项目"
+```bash
 ~/.dotnet/tools/voyager new -t web-app-all-in-one
 ```
 
@@ -105,7 +74,7 @@ Then use voyager to initialize the project:
 
 You will notice the following files are generated:
 
-```bash title="项目文件结构"
+```bash
 .
 ├── CODE_OF_CONDUCT.md
 ├── Dockerfile
@@ -159,25 +128,25 @@ Before you start writing code, it's recommended that you compile and run the pro
 
 First, restore the frontend dependencies. You can use the following command to install the frontend dependencies:
 
-```bash title="安装前端依赖"
+```bash
 cd ./src/MyOrg.MarkToHtml/wwwroot/
 npm install
+cd ../../..  # Back to the MyOrg.MarkToHtml repository root
 ```
 
 You can use the following command to compile the project:
 
-```bash title="编译项目"
+```bash
 dotnet build ./MyOrg.MarkToHtml.sln
 ```
 
 If the compilation is successful, you can run the project using the following command:
 
-```bash title="运行项目"
-cd ./src/MyOrg.MarkToHtml/
-dotnet run
+```bash
+dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
 ```
 
-By default, the application runs on `http://localhost:5000`. Now, you can open your browser to access this address and check whether the application is working properly. Normally, you will see a welcome page.
+By default, the application runs on `http://localhost:5000`. Use the listening URL printed by the application if you override the port. Now, you can open your browser to access this address and check whether the application is working properly. Normally, you will see a welcome page.
 
 You can log in using the default account. The default account information is as follows:
 
@@ -207,3 +176,5 @@ Deleting this folder will reset the application's file storage to its initial st
 Congratulations on completing the first step! You have now set up the development environment, initialized the git repository, successfully run a basic Aiursoft Template project, and understood its file structure, SQLite database, and file storage.
 
 Next, we will continue developing this project and add more features.
+
+The web project also contains a `.aosproj` packaging file. For commands inside that directory, specify `MyOrg.MarkToHtml.csproj` explicitly so the CLI can distinguish it from the packaging project. For isolated experiments, set `Storage__Path` to a writable project-specific directory instead of sharing `/tmp/data` with other applications.

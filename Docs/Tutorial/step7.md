@@ -39,7 +39,7 @@ First, use the first method: open the `./src/MyOrg.MarkToHtml/appsettings.json` 
 
 At this point, the JSON might look like this:
 
-```json title="禁止注册的 appsettings.json"
+```json
 {
   "ConnectionStrings": {
     "AllowCache": "True",
@@ -95,8 +95,7 @@ This time, we roll back the configuration in the `appsettings.json` file. Consid
 This time, use the following command to start the project:
 
 ```bash
-cd ./src/MyOrg.MarkToHtml
-AppSettings__Local__AllowRegister=false dotnet run
+AppSettings__Local__AllowRegister=false dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
 ```
 
 !!! tip "Note the naming convention for environment variables"
@@ -115,13 +114,13 @@ Below, we will use `AppSettings:AllowAnonymousUsage` as an example to demonstrat
 
 First, edit the `AppSettings` section in the `appsettings.json` file, and add a new configuration item `AllowAnonymousUsage`, setting its default value to `true`:
 
-```json title="添加新的配置项 AllowAnonymousUsage"
+```json
 ...
   "AppSettings": {
     "AuthProvider": "Local",
     "DefaultRole": "",
     "PersistsSignIn": false,
-    "AllowAnonymousUsage": true, // 新增的配置项
+    "AllowAnonymousUsage": true, // New setting
     ...
   }
 ...
@@ -129,46 +128,17 @@ First, edit the `AppSettings` section in the `appsettings.json` file, and add a 
 
 Next, we edit the `./src/MyOrg.MarkToHtml/Configuration/AppSettings.cs` file and add a new property `AllowAnonymousUsage`:
 
-```csharp title="添加新的配置项 AllowAnonymousUsage"
+```csharp
 public bool AllowAnonymousUsage { get; init; } = true;
 ```
 
-At this point, the `AppSettings.cs` file might look like the following:
-
-```csharp title="AppSettings.cs 完整代码"
-namespace MyOrg.MarkToHtml.Configuration;
-
-public class AppSettings
-{
-    public required string AuthProvider { get; init; } = "Local";
-    public bool LocalEnabled => AuthProvider == "Local";
-    public bool OIDCEnabled => AuthProvider == "OIDC";
-
-    public required OidcSettings OIDC { get; init; }
-    public required LocalSettings Local { get; init; }
-
-    /// <summary>
-    /// Keep the user sign in after the browser is closed.
-    /// </summary>
-    public bool PersistsSignIn { get; init; }
-
-    /// <summary>
-    /// Automatically assign the user to this role when they log in.
-    /// </summary>
-    public string? DefaultRole { get; init; } = string.Empty;
-
-    /// <summary>
-    /// Allow anonymous users to use the application.
-    /// </summary>
-    public bool AllowAnonymousUsage { get; init; } = true; // <-- 新增的配置项
-}
-```
+Preserve the existing AppSettings properties and add only AllowAnonymousUsage.
 
 Next, we can use this new configuration option in the code.
 
 The purpose of this configuration option is to disable anonymous usage. We directly go to the `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` file and first request `IOptions<AppSettings>` from dependency injection:
 
-```csharp title="在 HomeController 中注入 IOptions<AppSettings>"
+```csharp
 public class HomeController(
     IOptions<AppSettings> appSettings,
     ILogger<HomeController> logger,
@@ -185,7 +155,7 @@ Then, in the `Index` method, check this configuration. If the application disabl
 
     Returning `Challenge()` is far more generic and reliable than `return RedirectToAction("Login", "Account")`. Especially when considering that the application might support multiple authentication methods, such as OIDC, Local, etc.
 
-```csharp title="在 Index 方法中检查 AllowAnonymousUsage 配置项"
+```csharp
     public IActionResult Index()
     {
         if (!User.Identity!.IsAuthenticated && !appSettings.Value.AllowAnonymousUsage)
@@ -197,111 +167,18 @@ Then, in the `Index` method, check this configuration. If the application disabl
     }
 ```
 
-Similarly, the POST method of `Index` also needs to check this configuration item. Eventually, the `HomeController.cs` file might look like this:
+Similarly, the POST method of `Index` also needs to check this configuration item. Preserve the existing controller and add the anonymous-access check:
 
-```csharp title="HomeController.cs 完整代码"
-using System.ComponentModel.DataAnnotations;
-using Aiursoft.CSTools.Tools;
-using MyOrg.MarkToHtml.Models.HomeViewModels;
-using MyOrg.MarkToHtml.Services;
-using Aiursoft.UiStack.Navigation;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using MyOrg.MarkToHtml.Configuration;
-using MyOrg.MarkToHtml.Entities;
+In the existing Index POST action, add this at the start of its anonymous `else` branch, before conversion:
 
-namespace MyOrg.MarkToHtml.Controllers;
-
-public class HomeController(
-    IOptions<AppSettings> appSettings,
-    ILogger<HomeController> logger,
-    UserManager<User> userManager,
-    TemplateDbContext context,
-    MarkToHtmlService mtohService) : Controller
+```csharp
+if (!appSettings.Value.AllowAnonymousUsage)
 {
-    [RenderInNavBar(
-        NavGroupName = "Features",
-        NavGroupOrder = 1,
-        CascadedLinksGroupName = "Home",
-        CascadedLinksIcon = "home",
-        CascadedLinksOrder = 1,
-        LinkText = "Convert Document",
-        LinkOrder = 1)]
-    public IActionResult Index()
-    {
-        if (!User.Identity!.IsAuthenticated && !appSettings.Value.AllowAnonymousUsage)
-        {
-            logger.LogWarning("Anonymous user trying to access the home page. But it is not allowed.");
-            return Challenge();
-
-        }
-        return this.StackView(new IndexViewModel());
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Index(IndexViewModel model)
-    {
-        if (!ModelState.IsValid)
-        {
-            return this.StackView(model);
-        }
-
-        var userId = userManager.GetUserId(User);
-        if (User.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(userId))
-        {
-            // If the user is authenticated, this action only saves the document in the database. And it's `edit` action to render it.
-            // And go to the edit page.
-            logger.LogTrace("Authenticated user submitted a document with ID: '{Id}'. Save it to the database.",
-                model.DocumentId);
-            var documentInDb = await context.MarkdownDocuments
-                .FirstOrDefaultAsync(d => d.Id == model.DocumentId && d.UserId == userId);
-            if (documentInDb != null)
-            {
-                logger.LogInformation("Updating the document with ID: '{Id}'.", model.DocumentId);
-                documentInDb.Content = model.InputMarkdown.SafeSubstring(65535);
-                documentInDb.Title = model.Title;
-            }
-            else
-            {
-                logger.LogInformation("Creating a new document with ID: '{Id}'.", model.DocumentId);
-                model.DocumentId = Guid.NewGuid();
-                var newDocument = new MarkdownDocument
-                {
-                    Id = model.DocumentId,
-                    Content = model.InputMarkdown.SafeSubstring(65535),
-                    Title = model.InputMarkdown.SafeSubstring(40),
-                    UserId = userId
-                };
-                context.MarkdownDocuments.Add(newDocument);
-            }
-
-            await context.SaveChangesAsync();
-            return RedirectToAction(nameof(Edit), new { id = model.DocumentId });
-        }
-        else
-        {
-            if (!appSettings.Value.AllowAnonymousUsage)
-            {
-                logger.LogWarning("Anonymous user submitted a document with ID: '{Id}'.", model.DocumentId);
-                return Challenge();
-            }
-
-            // If the user is not authenticated, just show the result.
-            logger.LogInformation(
-                "An anonymous user submitted a document with ID: '{Id}'. It was not saved to the database.",
-                model.DocumentId);
-            model.OutputHtml = mtohService.ConvertMarkdownToHtml(model.InputMarkdown);
-            return this.StackView(model);
-        }
-    }
-
-    
-    ... other methods ...
+    return Challenge();
+}
 ```
+
+Keep the authenticated save branch, validation, Edit, History and Delete actions from Step 5. Do not replace existing methods with omitted-code placeholders.
 
 Other methods of HomeController are omitted. These methods are accessible only to logged-in users and are already protected using the `[Authorize]` attribute. No additional configuration checks are needed from us.
 
@@ -309,9 +186,8 @@ Other methods of HomeController are omitted. These methods are accessible only t
 
 Next, we can test this new configuration item. Use the following command to start the project:
 
-```bash title="使用新的配置项启动项目"
-cd ./src/MyOrg.MarkToHtml
-AppSettings__AllowAnonymousUsage=false dotnet run
+```bash
+AppSettings__AllowAnonymousUsage=false dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
 ```
 
 Then open the browser and visit `http://localhost:5000`. We will notice that if we log out the current user, the home page can no longer be accessed, and the application will automatically redirect to the login page.

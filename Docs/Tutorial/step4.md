@@ -17,7 +17,7 @@ If you are very familiar with Entity Framework Core, you can skip this step.
 
 For example, its syntax is similar to:
 
-```csharp title="EF Core 查询示例"
+```csharp
 var books = await dbContext.Books
     .Where(b => b.Author == "Anduin Xue")
     .OrderBy(b => b.PublishedDate)
@@ -28,7 +28,7 @@ var books = await dbContext.Books
 
 This will query the books with the author "Anduin Xue" from the `Books` table, sort them by publication date, skip the first 10 records, take the next 10 records, and convert the result into a list. Its SQL might look like:
 
-```sql title="对应的 SQL 查询"
+```sql
 SELECT * FROM Books
 WHERE Author = 'Anduin Xue'
 ORDER BY PublishedDate
@@ -45,27 +45,14 @@ In this example, we will create a new table called `MarkdownDocuments` to store 
 
 ## Step 4.2 Create a New Data Model
 
-Next, we will use Entity Framework Core to create a new data model class called `MarkdownDocument`, which will be used to store users' markdown documents. This data model will be stored in the table `MarkdownDocuments`.
+Create `src/MyOrg.MarkToHtml.Entities/MarkdownDocument.cs`:
 
-To create this data model, directly modify the `./src/MyOrg.MarkToHtml.Entities/User.cs` file:
-
-Add the necessary using statements:
-
-```csharp title="添加 using 语句，User.cs"
+```csharp
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Diagnostics.CodeAnalysis;
-using Newtonsoft.Json;
-```
 
-Add a new class `MarkdownDocuments` to represent all markdown documents owned by the user.
+namespace MyOrg.MarkToHtml.Entities;
 
-```csharp title="添加 MarkdownDocument 类，User.cs"
-public class User : IdentityUser
-{
-    // ... Existing properties ...
-}
-
-// New entity for storing markdown documents
 public class MarkdownDocument
 {
     [Key]
@@ -83,118 +70,33 @@ public class MarkdownDocument
     public required string UserId { get; set; }
 
     [ForeignKey(nameof(UserId))]
-    [NotNull]
     public User? User { get; set; }
 }
 ```
 
-In the above example, our class `MarkdownDocument` contains the following properties:
+In the existing `User.cs`, keep all generated properties and the default avatar logical path (`avatar/default-avatar.jpg`). Add these imports:
 
-* `Id`: The unique identifier of the document, using the GUID type.
-* `Title`: The title of the document, up to 100 characters.
-* `Content`: The content of the document, up to 65,535 characters.
-* `CreationTime`: The creation time of the document, using UTC time.
-* `UserId`: The ID of the user who owns the document, using string type, with a length of 64 characters.
-* `User`: Navigation property indicating the user to whom the document belongs. Here, `UserId` is the foreign key, referencing the primary key of the `User` entity.
+```csharp
+using System.ComponentModel.DataAnnotations.Schema;
+using Newtonsoft.Json;
+```
+and add this navigation property inside `User`:
 
-!!! info "Relational Database Relationships"
-
-    Tables in relational databases are typically associated through foreign keys. In the example above, the `MarkdownDocument` entity establishes a one-to-many relationship with the `User` entity via the `UserId` property. That is, one user can own multiple documents, while each document can belong to only one user.
-
-We use several `Attributes` here, such as `[Key]`, `[MaxLength]`, `[StringLength]`, `[ForeignKey]`, and so on. These `Attributes` inform Entity Framework Core how to map this class to a database table. Meanwhile, `[NotNull]` and `[JsonIgnore]` are used to prevent circular reference issues when attempting JSON serialization in the Controller.
-
-Additionally, we modify the User class above to add the following property:
-
-```csharp title="为 User 类添加 CreatedDocuments 属性"
+```csharp
 [JsonIgnore]
 [InverseProperty(nameof(MarkdownDocument.User))]
 public IEnumerable<MarkdownDocument> CreatedDocuments { get; set; } = new List<MarkdownDocument>();
 ```
 
-In the end, this file might look like this:
+`UserId` and `User` establish ownership. `JsonIgnore` prevents serializing the inverse document collection; nullable-analysis attributes are not serialization rules.
 
-```csharp title="完整的 User.cs"
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Diagnostics.CodeAnalysis;
-using Newtonsoft.Json;
-using Microsoft.AspNetCore.Identity;
+In the existing `src/MyOrg.MarkToHtml.Entities/MarkToHtmlDbContext.cs`, add:
 
-namespace MyOrg.MarkToHtml.Entities;
-
-public class User : IdentityUser
-{
-    public const string DefaultAvatarPath = "Workspace/avatar/default-avatar.jpg";
-
-    [MaxLength(30)]
-    [MinLength(2)]
-    public required string DisplayName { get; set; }
-
-    [MaxLength(150)]
-    [MinLength(2)]
-    public string AvatarRelativePath { get; set; } = DefaultAvatarPath;
-
-    public DateTime CreationTime { get; init; } = DateTime.UtcNow;
-
-    [JsonIgnore]
-    [InverseProperty(nameof(MarkdownDocument.User))]
-    public IEnumerable<MarkdownDocument> CreatedDocuments { get; set; } = new List<MarkdownDocument>();
-}
-
-public class MarkdownDocument
-{
-    [Key]
-    public Guid Id { get; set; }
-
-    [MaxLength(100)]
-    public string? Title { get; set; }
-
-    [MaxLength(65535)]
-    public string? Content { get; set; }
-
-    public DateTime CreationTime { get; init; } = DateTime.UtcNow;
-
-    [StringLength(64)]
-    public required string UserId { get; set; }
-
-    [ForeignKey(nameof(UserId))]
-    [NotNull]
-    public User? User { get; set; }
-}
-```
-
-Thus, we have completed the creation of the data model.
-
-Finally, to clearly indicate that we need a new table, edit the file `./src/MyOrg.MarkToHtml.Entities/MarkToHtmlDbContext.cs` and add the following property to `TemplateDbContext`:
-
-```csharp title="为 TemplateDbContext 添加 DbSet 属性"
+```csharp
 public DbSet<MarkdownDocument> MarkdownDocuments => Set<MarkdownDocument>();
 ```
 
-When we use `TemplateDbContext` as the database context class, Entity Framework Core automatically recognizes the `MarkdownDocuments` property and maps it to the `MarkdownDocuments` table in the database. This allows us to perform CRUD operations by working with `dbContext.MarkdownDocuments`, which will automatically translate into the corresponding SQL statements.
-
-The final file might look like this:
-
-```csharp title="完整的 MarkToHtmlDbContext.cs"
-using Aiursoft.DbTools;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-
-namespace MyOrg.MarkToHtml.Entities;
-
-public abstract class TemplateDbContext(DbContextOptions options) : IdentityDbContext<User>(options), ICanMigrate
-{
-    public virtual  Task MigrateAsync(CancellationToken cancellationToken) =>
-        Database.MigrateAsync(cancellationToken);
-
-    public virtual  Task<bool> CanConnectAsync() =>
-        Database.CanConnectAsync();
-
-    public DbSet<MarkdownDocument> MarkdownDocuments => Set<MarkdownDocument>();
-}
-```
-
-Thus, we have completed the creation of the data model. However, the table does not yet exist in the database itself. Therefore, running the program directly now would result in an error. We need to create a migration to tell EF Core how to create this table.
+The file name is `MarkToHtmlDbContext.cs`, but its generated class is still `TemplateDbContext`. Preserve its existing `GlobalSettings` DbSet, identity mappings and migration methods; add the new DbSet inside the existing class.
 
 ## Step 4.3 Create Migration and Update Database
 
@@ -206,15 +108,15 @@ Aiursoft Template supports multiple databases, including SQLite, MySQL, InMemory
 
 To create a migration, we need to use the Entity Framework Core command-line tool `dotnet ef`. If you haven't installed it yet, you can use the following command to install:
 
-```bash title="安装 dotnet ef 工具"
-dotnet tool install --global dotnet-ef
+```bash
+dotnet tool install --global dotnet-ef --version '10.*'
 ```
 
 ### Step 4.3.1 Create Migration for SQLite
 
 Next, we need to create migrations for both SQLite and MySQL. When creating a migration for SQLite, ensure that `ConnectionStrings.DbType` in `./src/MyOrg.MarkToHtml/appsettings.json` is set to `Sqlite`, and that `DefaultConnection` points to a SQLite database file, for example:
 
-```json title="修改 appsettings.json"
+```json
 {
   "ConnectionStrings": {
     "AllowCache": "True",
@@ -227,9 +129,10 @@ Next, we need to create migrations for both SQLite and MySQL. When creating a mi
 
 Then, run the following command to create the migration:
 
-```bash title="为 SQLite 创建迁移"
+```bash
 cd ./src/MyOrg.MarkToHtml.Sqlite/
 dotnet ef migrations add AddMarkdownDocumentsTable --context "SqliteContext" -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+cd ../.. # Repository root
 ```
 
 !!! note "The above command will not change any database schema!"
@@ -238,13 +141,13 @@ dotnet ef migrations add AddMarkdownDocumentsTable --context "SqliteContext" -s 
 
 You will notice output similar to:
 
-```bash title="创建迁移的输出"
+```bash
 Done. To undo this action, use 'ef migrations remove'
 ```
 
 At the same time, a new migration file will be generated under the `./src/MyOrg.MarkToHtml.Sqlite/Migrations/` directory, named something like `20231010123456_AddMarkdownDocumentsTable.cs`. Its content might look like:
 
-```csharp title="生成的迁移文件"
+```csharp
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -307,9 +210,9 @@ The `Down` method is used to roll back the migration, which means dropping the `
 
 ### Step 4.3.2 Create Migration for MySQL
 
-Next, we need to create a migration for MySQL. When creating a migration for MySQL, ensure that `./src/MyOrg.MarkToHtml.MySQL/appsettings.json` has `ConnectionStrings.DbType` set to `MySQL`, and that `DefaultConnection` points to a MySQL database. The file can be modified to start like this:
+Next, we need to create a migration for MySQL. When creating a migration for MySQL, ensure that `./src/MyOrg.MarkToHtml/appsettings.json` has `ConnectionStrings.DbType` set to `MySQL`, and that `DefaultConnection` points to a MySQL database. The file can be modified to start like this:
 
-```json title="修改 MySQL 的 appsettings.json"
+```json
 {
   "ConnectionStrings": {
     "AllowCache": "True",
@@ -320,24 +223,33 @@ Next, we need to create a migration for MySQL. When creating a migration for MyS
 }
 ```
 
+The settings belong to the web project, not the MySql class library. Start from the repository root. Choose an unused local port if 3306 is occupied and use the same port in the connection string.
+
 Next, to create a migration, we must start a real MySQL. We can use Docker to quickly start a MySQL instance:
 
-```bash title="使用 Docker 启动 MySQL"
-sudo docker run -d --name db -e MYSQL_RANDOM_ROOT_PASSWORD=true -e MYSQL_DATABASE=template -e MYSQL_USER=template -e MYSQL_PASSWORD=template_password -p 3306:3306 mysql
+```bash
+sudo docker run -d --name tutorial-mysql -e MYSQL_RANDOM_ROOT_PASSWORD=true -e MYSQL_DATABASE=template -e MYSQL_USER=template -e MYSQL_PASSWORD=template_password -p 127.0.0.1:3306:3306 mysql:9.7.0
 ```
 
 !!! info "Creating a migration requires a connection to the database"
 
     Although creating a migration does not alter the database schema, it requires a connection to the database so that EF Core can read the database's metadata and generate the correct migration code. Therefore, ensure your MySQL instance is running and that the connection string is accurate.
 
-This meets our application's connection string requirements. At this point, we can use the following command to create a migration:
+Wait until a query using the application database user succeeds:
 
-```bash title="为 MySQL 创建迁移"
-cd ./src/MyOrg.MarkToHtml.MySql/ # 务必确保你在这个目录下
-dotnet ef migrations add AddMarkdownDocumentsTable --context "MySqlContext" -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```bash
+sudo docker exec tutorial-mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql -u "$MYSQL_USER" "$MYSQL_DATABASE" -e "SELECT 1"'
 ```
 
-Similarly, a new migration file will be generated under the `./src/MyOrg.MarkToHtml.MySQL/Migrations/` directory, named something like `20231010123456_AddMarkdownDocumentsTable.cs`. Carefully review its content to ensure it meets your expectations, then proceed.
+This meets our application's connection string requirements. At this point, we can use the following command to create a migration:
+
+```bash
+cd ./src/MyOrg.MarkToHtml.MySql/ # From the repository root
+dotnet ef migrations add AddMarkdownDocumentsTable --context "MySqlContext" -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+cd ../.. # Repository root
+```
+
+Similarly, a new migration file will be generated under the `./src/MyOrg.MarkToHtml.MySql/Migrations/` directory, named something like `20231010123456_AddMarkdownDocumentsTable.cs`. Carefully review its content to ensure it meets your expectations, then proceed.
 
 ### Step 4.3.3 Cleanup: Remove Database, Rollback appsettings.json (Optional)
 
@@ -349,14 +261,14 @@ Note: If you encounter errors when creating the migration, such as being unable 
 
 Note: After creating the MySQL migration, if you no longer need this MySQL instance, you can stop and remove it using the following command:
 
-```bash title="停止并删除 MySQL 容器"
-sudo docker stop db
-sudo docker rm db
+```bash
+sudo docker stop tutorial-mysql
+sudo docker rm -v tutorial-mysql
 ```
 
 Meanwhile, for easier local debugging, it is recommended to revert the `ConnectionStrings.DbType` setting in the `appsettings.json` file back to `Sqlite`, and set `DefaultConnection` to point to a SQLite database file, for example:
 
-```json title="回滚 appsettings.json"
+```json
 {
   "ConnectionStrings": {
     "AllowCache": "True",
@@ -373,7 +285,7 @@ Every time you modify any entity class, you should repeat the steps in 4.3.1 and
 
     If you reset the database or delete users from the database, be sure to log out the currently logged-in user. Aiursoft Template's authentication issues a signed Token in the Cookie. If a user is deleted—such as when switching databases or resetting the database—the Token remains valid, but the user no longer exists. In this case, the user needs to log in again to obtain a new Token. Otherwise, exceptions will occur when accessing data.
 
-    You can use the following technique to revoke the login status of all users and force them to re-login. Delete:
+    Do not delete shared data-protection keys. For a disposable experiment, use a fresh isolated database and sign out before switching databases. Applications that share a user profile can also share the key directories below:
 
     * Local debugging: `~/.aspnet/DataProtection-Keys` directory
     * Docker environment: `/data/aspnet/DataProtection-Keys` directory
@@ -388,7 +300,7 @@ Now that we have created the migrations, we need to run the application so it ca
 
 Before proceeding, you can first read the `./src/MyOrg.MarkToHtml/Startup.cs` file to understand how the application is configured to use the database. Locate the following code and do not modify it:
 
-```csharp title="Startup.cs 中的关键数据库配置代码"
+```csharp
 var (connectionString, dbType, allowCache) = configuration.GetDbSettings();
 services.AddSwitchableRelationalDatabase(
     dbType: EntryExtends.IsInUnitTests() ? "InMemory": dbType,
@@ -410,13 +322,12 @@ We also notice that in the unit test environment, the database type is forcibly 
 Next, we directly run the application using the command line:
 
 ```bash
-cd ./src/MyOrg.MarkToHtml/
-dotnet run
+dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
 ```
 
 During this run, you will notice the following output (note: it only appears on the first run):
 
-```bash title="程序输出"
+```bash
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
       Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
       SELECT "MigrationId", "ProductVersion"

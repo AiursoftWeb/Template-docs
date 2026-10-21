@@ -8,7 +8,7 @@ Next, we will continue expanding the previous example to allow users to save the
 
 First, we need to modify the `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` file and add the necessary using statements:
 
-```csharp title="HomeController.cs 的 using 语句"
+```csharp
 using System.ComponentModel.DataAnnotations;
 using Aiursoft.CSTools.Tools;
 using MyOrg.MarkToHtml.Models.HomeViewModels;
@@ -23,7 +23,7 @@ using MyOrg.MarkToHtml.Entities;
 
 Then we adjust its constructor to support logging, database, and user manager:
 
-```csharp title="HomeController.cs 的构造方法"
+```csharp
 public class HomeController(
     ILogger<HomeController> logger,
     UserManager<User> userManager,
@@ -35,7 +35,7 @@ Next, we refactor the `Index` method. For unauthenticated users, we directly ren
 
 Modify the `Index` method to:
 
-```csharp title="HomeController.cs 重构的 Index 的 POST 方法"
+```csharp
 [HttpPost]
 [ValidateAntiForgeryToken]
 public async Task<IActionResult> Index(IndexViewModel model)
@@ -112,7 +112,7 @@ public bool SavedSuccessfully { get; set; }
 
 Read the server-side code, where the core logic is:
 
-```csharp title="HomeController.cs 的 Index 方法"
+```csharp
 var documentInDb = await context.MarkdownDocuments
     .FirstOrDefaultAsync(d => d.Id == model.DocumentId && d.UserId == userId);
 var isExistingDocument = documentInDb != null;
@@ -142,9 +142,9 @@ For unauthenticated users, we directly render the content as HTML to keep the co
 Our code is:
 
 ```text
-用户的 DocumentId 如果不存在或不属于这个用户，那么不会信任用户提交的 DocumentId，而是重新生成一个新的 ID 然后插入数据库。这样可以防止用户恶意提交别人的 DocumentId 来修改别人的文档。
+If the submitted document ID does not exist or belongs to another user, create a new ID instead of updating that document. This prevents a user from editing another user's document by guessing its ID.
 
-而如果用户提交的 DocumentId 存在并且属于当前用户，那么就只更新这个文档的内容和标题。具体的 Markdown 渲染过程则交给了 `Edit` 方法来处理。现在，我们创建 `Edit` 方法。
+If the document belongs to the signed-in user, update its content and title. The Edit action renders the saved Markdown.
 ```
 
 ## Step 5.2 Create the page for editing documents
@@ -153,7 +153,7 @@ Our code is:
 
 In the `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` file, add the following code:
 
-```csharp title="HomeController.cs 的 Edit 方法"
+```csharp
 [Authorize]
 public async Task<IActionResult> Edit([Required][FromRoute] Guid id, [FromQuery] bool? saved = false)
 {
@@ -197,7 +197,7 @@ This way, we can build a very ideal user experience: users can create new docume
 
 Modify the `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` file, and add the following code above the Markdown input area on the left:
 
-```html title="Index.cshtml 调整其 Markdown 输入区域"
+```html
 @* Left Column: Markdown Input *@
 <div class="col-lg-6 d-flex">
     <div class="card flex-fill">
@@ -245,7 +245,7 @@ This way, in edit mode, users can see a title input box where they can add a tit
 
 Additionally, we add a message box at the top of the form to display a success message upon successful save. Add the following code to the `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` file, immediately before the `<form>` tag:
 
-```html title="Index.cshtml 显示保存成功的提示"
+```html
 ... Other code ...
 </div>
 
@@ -436,7 +436,7 @@ This view uses a table to display all documents of the user. Each row shows the 
 
 Note that we use a trick here: the `data-utc-time` attribute stores the UTC time. The JavaScript provided by Aiursoft Template automatically converts it to the user's local time and displays it. Do you remember how we defined the `CreationTime` property when designing the entity? The code back then was:
 
-```csharp title="MarkdownDocument 的 CreationTime 属性"
+```csharp
 public DateTime CreationTime { get; init; } = DateTime.UtcNow;
 ```
 
@@ -444,7 +444,7 @@ Therefore, when this entity is created, the UTC time at that moment is already s
 
 Finally, to help users easily return to their document list from the edit page, we add a back button to the left of the submit button in the `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` file. Additionally, for authenticated users, we emphasize that the convert button has a save function. The modification is as follows:
 
-```html title="Index.cshtml 给提交按钮添加返回按钮"
+```html
     @* Submit Button Row *@
     <div class="row mt-3">
         <div class="col text-center">
@@ -485,7 +485,7 @@ After completing the creation, editing, and listing features, deletion naturally
 
 In the file `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs`, add the following code:
 
-```csharp title="HomeController.cs 的 Delete 方法"
+```csharp
 // GET: /Home/Delete/{guid}
 [Authorize]
 public async Task<IActionResult> Delete(Guid? id)
