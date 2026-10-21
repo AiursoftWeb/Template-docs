@@ -132,6 +132,73 @@ This is a comparison snippet, not the whole context file. Keep its constructor a
 
 The file name is `MarkToHtmlDbContext.cs`, but its generated class is still `TemplateDbContext`. Preserve its existing `GlobalSettings` DbSet, identity mappings and migration methods; add the new DbSet inside the existing class.
 
+### Code checkpoint - keep the generated members
+
+Pause here and compare the two files before generating a migration.
+These are the current generated files with our additions.
+If a newer template has extra members, retain them too.
+
+User.cs keeps the existing avatar path and identity fields:
+
+```csharp title="src/MyOrg.MarkToHtml.Entities/User.cs"
+using System.ComponentModel.DataAnnotations.Schema;
+using Newtonsoft.Json;
+
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Identity;
+
+namespace MyOrg.MarkToHtml.Entities;
+
+[ExcludeFromCodeCoverage]
+public class User : IdentityUser
+{
+    public const string DefaultAvatarPath = "avatar/default-avatar.jpg";
+
+    [MaxLength(30)]
+    [MinLength(2)]
+    public required string DisplayName { get; set; }
+
+    [MaxLength(150)][MinLength(2)] public string AvatarRelativePath { get; set; } = DefaultAvatarPath;
+
+    public DateTime CreationTime { get; init; } = DateTime.UtcNow;
+    [JsonIgnore]
+    [InverseProperty(nameof(MarkdownDocument.User))]
+    public IEnumerable<MarkdownDocument> CreatedDocuments { get; set; } = new List<MarkdownDocument>();
+
+}
+```
+
+MarkToHtmlDbContext.cs keeps GlobalSettings and its migration methods:
+
+```csharp title="src/MyOrg.MarkToHtml.Entities/MarkToHtmlDbContext.cs"
+using System.Diagnostics.CodeAnalysis;
+using Aiursoft.DbTools;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+
+namespace MyOrg.MarkToHtml.Entities;
+
+[ExcludeFromCodeCoverage]
+
+public abstract class TemplateDbContext(DbContextOptions options) : IdentityDbContext<User>(options), ICanMigrate
+{
+    public DbSet<GlobalSetting> GlobalSettings => Set<GlobalSetting>();
+
+    public virtual Task MigrateAsync(CancellationToken cancellationToken) =>
+        Database.MigrateAsync(cancellationToken);
+
+    public virtual Task<bool> CanConnectAsync() =>
+        Database.CanConnectAsync();
+    public DbSet<MarkdownDocument> MarkdownDocuments => Set<MarkdownDocument>();
+
+
+}
+```
+
+Your file should have one User class and one TemplateDbContext class, not a second copy pasted below them.
+Our separate MarkdownDocument.cs contains the new entity.
+
 ## Step 4.3 Create Migration and Update Database
 
 Aiursoft Template supports multiple databases, including SQLite, MySQL, InMemory, and more.

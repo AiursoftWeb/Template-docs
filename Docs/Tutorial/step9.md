@@ -40,11 +40,14 @@ public class IndexViewModel : UiStackLayoutViewModel
     public IndexViewModel() { PageTitle = "Upload a note image"; }
 
     [Required]
-    [MaxLength(150)]
+    [MaxLength(512)]
     public string? FilePath { get; set; }
     public string? ImageUrl { get; set; }
 }
 ```
+
+The length limit covers the **whole logical path**, including the per-user folder and filename.
+A valid longer filename must still fit after that folder prefix is added.
 
 Create `src/MyOrg.MarkToHtml/Controllers/UploadsController.cs`:
 

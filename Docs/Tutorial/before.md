@@ -39,6 +39,9 @@ The terminal's current folder matters.
 We will create the project at `~/Source/MyOrg.MarkToHtml`.
 We call that folder the **repository root**.
 
+Keep using the terminal you prepared in Step 1.
+If you open a new terminal, repeat Step 1's PATH and Storage__Path setup after returning to the root.
+
 Paths beginning with `src/` are relative to that root.
 Do not create another `src` folder inside the web project.
 

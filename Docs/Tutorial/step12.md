@@ -70,10 +70,11 @@ dotnet build ./MyOrg.MarkToHtml.sln
 This compiles the application. **Expected:** no build errors.
 
 ```bash
-dotnet test ./MyOrg.MarkToHtml.sln
+Storage__Path="$PWD/.tutorial-test-data" dotnet test ./MyOrg.MarkToHtml.sln
 ```
 
-This runs the template's existing tests.
+This runs the template's existing tests with their own file-storage folder.
+The variable assignment applies only to this command; it avoids mixing test files with the notes and pictures you created by hand.
 **Expected:** all discovered tests pass.
 Do not continue with a failing test; read its failure message first.
 

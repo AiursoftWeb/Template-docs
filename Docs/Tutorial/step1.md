@@ -55,6 +55,15 @@ docker --version
 This checks the Docker command. **Expected:** a Docker version.
 We will check that the Docker service works when we use it in Step 4.
 
+```bash
+docker buildx version
+```
+
+This checks the standard Buildx/BuildKit build component used by the template's Dockerfile.
+**Expected:** a Buildx version, not `unknown command`.
+If it is missing, finish the Buildx plugin installation from the Docker installation guide above.
+A Docker client version alone does not check that component.
+
 If a command says `command not found`, finish installing that tool first.
 You have not broken the project; we have not created it yet.
 
@@ -238,9 +247,22 @@ In the repository root's `.gitignore`, add this line and save the file:
 
 ```gitignore
 .tutorial-data/
+.tutorial-test-data/
 ```
 
-This keeps experimental uploads out of Git.
+These entries keep experimental uploads and later test files out of Git.
+
+Also append these entries to the existing `.dockerignore` in the repository root:
+
+```dockerignore
+.tutorial-data/
+.tutorial-test-data/
+**/app.db
+**/app.db-*
+```
+
+Keep its other rules. These additions keep local uploads, test files, and SQLite database/journal files out of Docker's build context.
+Git's ignore file and Docker's ignore file do different jobs; updating one does not update the other.
 Do not delete a shared `/tmp/data` folder to reset this app.
 
 ## 1.7 Build and run

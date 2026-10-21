@@ -63,12 +63,42 @@ cd ../..
 
 This returns to the repository root.
 
-Now repeat Step 4's MySQL setup: start the disposable `tutorial-mysql` container,
-wait until its `SELECT 1` check succeeds, and switch the web ConnectionStrings section to MySql.
+Now we need the disposable MySQL database again.
+The main path in Step 4 removed it, so create it again:
 
-Use the same tutorial database and password as in Step 4.
+```bash
+sudo docker run -d --name tutorial-mysql \
+  -e MYSQL_RANDOM_ROOT_PASSWORD=true \
+  -e MYSQL_DATABASE=template \
+  -e MYSQL_USER=template \
+  -e MYSQL_PASSWORD=template_password \
+  -p 127.0.0.1:3306:3306 \
+  mysql:9.7.0
+```
 
-If you removed that container earlier, create it again; do not run two containers with the same name.
+This starts the same private tutorial database, with the same account and port as Step 4.
+It is one command spread over several lines.
+If you deliberately kept the old container, reuse/start that one instead of creating a duplicate.
+If you chose another port in Step 4, use that same mapping and connection-string port here.
+
+```bash
+sudo docker exec tutorial-mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql -u "$MYSQL_USER" "$MYSQL_DATABASE" -e "SELECT 1"'
+```
+
+This repeats the readiness query. **Expected:** `1` without a connection error.
+Wait and retry this check if the database is still starting.
+
+In the web project's appsettings.json, change **only** the ConnectionStrings object:
+
+```json
+"ConnectionStrings": {
+  "AllowCache": "True",
+  "DbType": "MySql",
+  "DefaultConnection": "Server=localhost;Database=template;Uid=template;Pwd=template_password;"
+},
+```
+
+Keep the surrounding settings. Save the file before running EF.
 
 ```bash
 cd src/MyOrg.MarkToHtml.MySql
@@ -88,8 +118,31 @@ cd ../..
 ```
 
 This returns to the repository root.
-Switch the web appsettings.json back to SQLite **before** continuing.
-You may then stop/remove only the disposable MySQL container, as in Step 4.
+Before continuing, restore **only** the web configuration's ConnectionStrings object:
+
+```json
+"ConnectionStrings": {
+  "AllowCache": "True",
+  "DbType": "Sqlite",
+  "DefaultConnection": "DataSource=app.db;Cache=Shared"
+},
+```
+
+Save the file. The next checkpoint runs on SQLite.
+Now that the app no longer needs MySQL, clean up this disposable container:
+
+```bash
+sudo docker stop tutorial-mysql
+```
+
+This stops only the named tutorial database.
+
+```bash
+sudo docker rm -v tutorial-mysql
+```
+
+This removes it and its temporary anonymous data volume.
+The migration source files remain in your repository.
 
 Review both migrations. They should add columns, not drop existing note or identity tables.
 Starting the app at the checkpoint below applies the selected provider's migration.

@@ -113,6 +113,7 @@ dotlang auto-dedup-resx-keys --path .
 ```
 
 This removes redundant resource keys using the tool's existing rules.
+It can also touch existing resource languages; the translation commands above were limited to zh-CN.
 Review its changes along with the generated files.
 
 ```bash
