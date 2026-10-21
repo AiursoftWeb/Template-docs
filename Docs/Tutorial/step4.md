@@ -391,7 +391,10 @@ Do not stop another application's database.
 
 !!! info "Creating a migration requires a connection to the database"
 
-    Although creating a migration does not alter the database schema, it requires a connection to the database so that EF Core can read the database's metadata and generate the correct migration code. Therefore, ensure your MySQL instance is running and that the connection string is accurate.
+    This template detects the MySQL server version during provider setup.
+    That design-time setup needs a connection, even though generating the migration does not apply it.
+
+    Make sure this tutorial MySQL instance is running and its connection string is accurate.
 
 Wait until a query using the application database user succeeds:
 

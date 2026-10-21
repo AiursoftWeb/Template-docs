@@ -99,6 +99,7 @@ To enable interaction between the frontend page and the backend service, we need
 Here, for simplicity, we directly modify the `./src/MyOrg.MarkToHtml/Models/HomeViewModels/IndexViewModel.cs` file, adding a new property `InputMarkdown` to store the user's input markdown content, and use the `OutputHtml` property to store the generated HTML content.
 
 ```csharp title="IndexViewModel.cs"
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System.ComponentModel.DataAnnotations;
 using Aiursoft.UiStack.Layout;
 
@@ -127,6 +128,7 @@ public class IndexViewModel : UiStackLayoutViewModel
 
                                                 """;
 
+    [BindNever]
     public string OutputHtml { get; set; } = string.Empty;
 }
 ```
@@ -136,6 +138,10 @@ Note that the `[Required]` attribute here indicates that the `InputMarkdown` pro
 If the user enters no content, an error message will be displayed when the form is submitted.
 
 If the user forces submission via HTTP Post, the server-side `ModelState.IsValid` will return false.
+
+InputMarkdown comes from the user. OutputHtml comes from our conversion service.
+The `[BindNever]` attribute keeps a posted form from supplying its own trusted HTML output.
+Our controller can still set that property after sanitization.
 
 ## Step 3.4 Modify Controller
 

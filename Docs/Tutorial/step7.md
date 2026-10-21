@@ -268,12 +268,14 @@ public class HomeController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Index(IndexViewModel model)
     {
+        var userId = userManager.GetUserId(User);
         if (!ModelState.IsValid)
         {
+            model.IsEditing = !string.IsNullOrWhiteSpace(userId) &&
+                await context.MarkdownDocuments.AnyAsync(d =>
+                    d.Id == model.DocumentId && d.UserId == userId);
             return this.StackView(model);
         }
-
-        var userId = userManager.GetUserId(User);
         if (User.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(userId))
         {
             // If the user is authenticated, this action only saves the document in the database. And it's `edit` action to render it.

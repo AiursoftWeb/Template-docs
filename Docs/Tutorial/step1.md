@@ -198,7 +198,8 @@ A few landmarks are enough for now:
 
 Keep these generated files. We do not need to remove anything to follow the tutorial.
 
-Open this folder in your editor.
+In your editor, choose **File → Open Folder** (or **Open** in Rider).
+Select `~/Source/MyOrg.MarkToHtml`, the folder containing the solution file.
 Keep the terminal in the repository root.
 
 ## 1.5 Download the browser libraries

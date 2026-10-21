@@ -57,12 +57,14 @@ Replace the **POST Index action only**, including its `[HttpPost]` and `[Validat
 [ValidateAntiForgeryToken]
 public async Task<IActionResult> Index(IndexViewModel model)
 {
+    var userId = userManager.GetUserId(User);
     if (!ModelState.IsValid)
     {
+        model.IsEditing = !string.IsNullOrWhiteSpace(userId) &&
+            await context.MarkdownDocuments.AnyAsync(d =>
+                d.Id == model.DocumentId && d.UserId == userId);
         return this.StackView(model);
     }
-
-    var userId = userManager.GetUserId(User);
     if (User.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(userId))
     {
         // If the user is authenticated, this action only saves the document in the database. And it's `edit` action to render it.
@@ -117,13 +119,23 @@ Edit the file `./src/MyOrg.MarkToHtml/Models/HomeViewModels/IndexViewModel.cs` a
 [Required(ErrorMessage = "Something went wrong, please try again later.")]
 public Guid DocumentId { get; set; } = Guid.NewGuid();
 
-public bool IsEditing { get; init; }
+[BindNever]
+public bool IsEditing { get; set; }
 
 [MaxLength(100)]
 public string? Title { get; set; }
 
+[BindNever]
 public bool SavedSuccessfully { get; set; }
 ```
+
+DocumentId is the input that identifies the note being edited.
+The display flags IsEditing and SavedSuccessfully are set by the server, so they also have `[BindNever]`.
+Keep the ModelBinding import introduced in Step 3.
+
+The invalid-form branch checks ownership before restoring edit mode.
+This keeps the title box and hidden document ID on the page when validation fails.
+Correcting a field should update the same note, not accidentally create another one.
 
 ### Step 5.1.2 Understand Save and Update Logic (Optional)
 
@@ -755,12 +767,14 @@ public class HomeController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Index(IndexViewModel model)
     {
+        var userId = userManager.GetUserId(User);
         if (!ModelState.IsValid)
         {
+            model.IsEditing = !string.IsNullOrWhiteSpace(userId) &&
+                await context.MarkdownDocuments.AnyAsync(d =>
+                    d.Id == model.DocumentId && d.UserId == userId);
             return this.StackView(model);
         }
-
-        var userId = userManager.GetUserId(User);
         if (User.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(userId))
         {
             // If the user is authenticated, this action only saves the document in the database. And it's `edit` action to render it.
@@ -907,6 +921,7 @@ public class HomeController(
 Here is the complete IndexViewModel.cs at the same point:
 
 ```csharp title="Models/HomeViewModels/IndexViewModel.cs"
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System.ComponentModel.DataAnnotations;
 using Aiursoft.UiStack.Layout;
 
@@ -935,15 +950,18 @@ public class IndexViewModel : UiStackLayoutViewModel
 
                                                 """;
 
+    [BindNever]
     public string OutputHtml { get; set; } = string.Empty;
     [Required(ErrorMessage = "Something went wrong, please try again later.")]
     public Guid DocumentId { get; set; } = Guid.NewGuid();
 
-    public bool IsEditing { get; init; }
+    [BindNever]
+    public bool IsEditing { get; set; }
 
     [MaxLength(100)]
     public string? Title { get; set; }
 
+    [BindNever]
     public bool SavedSuccessfully { get; set; }
 
 }

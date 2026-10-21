@@ -82,6 +82,7 @@ Then, create a new file `NoBadWordsAttribute.cs` under the `./src/MyOrg.MarkToHt
 
 ```csharp title="Attributes/NoBadWordsAttribute.cs"
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Localization;
 using MyOrg.MarkToHtml.Services;
 
 namespace MyOrg.MarkToHtml.Attributes;
@@ -109,7 +110,12 @@ public class NoBadWordsAttribute : ValidationAttribute
         if (badWordFilter.ContainsBadWord(stringValue))
         {
             // If a bad word is found, return a validation error.
-            return new ValidationResult(ErrorMessage ?? $"The field {validationContext.DisplayName} contains inappropriate content.");
+            var localizerFactory = validationContext.GetService(typeof(IStringLocalizerFactory))
+                as IStringLocalizerFactory
+                ?? throw new InvalidOperationException("Localization is not configured.");
+            var localizer = localizerFactory.Create(validationContext.ObjectType);
+            var key = ErrorMessage ?? "The field {0} contains inappropriate content.";
+            return new ValidationResult(localizer[key, validationContext.DisplayName].Value);
         }
 
         // If no bad words are found, the validation is successful.
@@ -117,6 +123,14 @@ public class NoBadWordsAttribute : ValidationAttribute
     }
 }
 ```
+
+The two ErrorMessage values live on our view model.
+The localizer factory uses that model's type, so it looks in the same resource file DotLang will generate.
+
+Custom attributes do not get a built-in localization adapter automatically.
+Returning the raw English ErrorMessage would leave this validation untranslated.
+
+It is fine to see English for now. We will generate a second language in Step 11.
 
 !!! tip "Understanding `ValidationAttribute`"
 
@@ -146,6 +160,7 @@ Keep DocumentId, IsEditing, SavedSuccessfully, the title, and the existing Markd
 The two NoBadWords attributes are the new pieces:
 
 ```csharp title="Models/HomeViewModels/IndexViewModel.cs"
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using MyOrg.MarkToHtml.Attributes;
 using System.ComponentModel.DataAnnotations;
 using Aiursoft.UiStack.Layout;
@@ -176,16 +191,19 @@ public class IndexViewModel : UiStackLayoutViewModel
 
                                                 """;
 
+    [BindNever]
     public string OutputHtml { get; set; } = string.Empty;
     [Required(ErrorMessage = "Something went wrong, please try again later.")]
     public Guid DocumentId { get; set; } = Guid.NewGuid();
 
-    public bool IsEditing { get; init; }
+    [BindNever]
+    public bool IsEditing { get; set; }
 
     [MaxLength(100)]
     [NoBadWords(ErrorMessage = "The document title contains sensitive words.")]
     public string? Title { get; set; }
 
+    [BindNever]
     public bool SavedSuccessfully { get; set; }
 
 }
@@ -239,6 +257,7 @@ Open the listening address in your browser.
 - Confirm the page shows the content validation error instead of saving it.
 - Try a title containing `sensitive`; confirm the title error appears.
 - Correct both fields and save again; it should succeed.
+- Check the note ID in the URL stays the same and no duplicate appears in My Documents.
 - Reopen the note and check the rejected values were not saved.
 
 Our two-word list is a learning example, not a complete content-moderation system.

@@ -175,6 +175,7 @@ public class UserDocumentsViewModel : UiStackLayoutViewModel
 ViewModel for editing documents `EditDocumentViewModel.cs`:
 
 ```csharp title="EditDocumentViewModel.cs"
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System.ComponentModel.DataAnnotations;
 using Aiursoft.UiStack.Layout;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -199,6 +200,7 @@ public class EditDocumentViewModel : UiStackLayoutViewModel
 
     public List<SelectListItem> AllUsers { get; set; } = new();
 
+    [BindNever]
     public bool SavedSuccessfully { get; set; }
 }
 ```
