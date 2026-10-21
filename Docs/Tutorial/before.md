@@ -1,15 +1,73 @@
 # Before You Begin
 
-This is the quick start guide for Aiursoft Template. We all know that starting a new project can be a hassle, so we've prepared this tutorial to help you get up and running quickly.
+Welcome! We will build a small Markdown notebook together.
 
-This tutorial is a sequence of hands-on exercises; allow time for dependency downloads, database migrations, and verification after each chapter. By the end, you'll have a fully functional project that you can use as a foundation for your future projects. For demonstration purposes, we'll build a simple note-taking app that converts Markdown to HTML, featuring multiple databases, RBAC, localization, OIDC integration, unit testing, and Docker deployment.
+You do not need to understand the whole application yet.
+Let's make one small change, check it, and then move on.
 
-!!! info
+By the end, you will be able to:
 
-    We strongly recommend that you do not skip any steps to ensure a complete experience.
+- Convert Markdown into HTML.
+- Sign in and save your own notes.
+- Upload a picture and restore a deleted note.
+- Translate the interface and run the app in Docker.
 
-Work through one chapter at a time, and may you quickly become an Aiursoft Template master, fulfilling your web development dreams!
+## How to use this tutorial
 
-[Start Creating Project](./step1.md)
+Read the chapters in order.
+Each chapter starts where the previous one stopped.
 
-Keep the generated project as the starting point. Add the examples to its existing files instead of replacing infrastructure classes with an older snapshot. Commands state their working directory; return to the project root when instructed. The application uses .NET 10, Node.js 24 and the current Voyager template.
+Run **one command at a time**.
+Wait for it to finish before running the next command.
+
+Text labelled **Expected** describes the result. Do not type that text.
+
+At a **checkpoint**, pause and try the listed actions.
+If a check fails, stay in that chapter. Later steps depend on it.
+
+## Three places we will work
+
+**Terminal:** where you type commands such as `dotnet build`.
+
+**Editor:** where you open and change source files.
+
+**Browser:** where you try the running application.
+
+The terminal's current folder matters.
+`pwd` prints that folder. `cd` changes it.
+
+We will create the project at `~/Source/MyOrg.MarkToHtml`.
+We call that folder the **repository root**.
+
+Keep using the terminal you prepared in Step 1.
+If you open a new terminal, repeat Step 1's PATH and Storage__Path setup after returning to the root.
+
+Paths beginning with `src/` are relative to that root.
+Do not create another `src` folder inside the web project.
+
+## Start and stop the app
+
+A running web server keeps its terminal busy. That is normal.
+
+When we ask you to stop the app, click its terminal and press **Ctrl+C**.
+Wait until the command prompt returns.
+
+Then you can edit the files and run the next command in that same terminal.
+This also prevents two copies of the app from trying to use port 5000.
+
+## A few gentle guardrails
+
+Keep the files Voyager generates.
+We will point out exactly where to add our own code.
+
+A **complete file** block replaces that file.
+An **insert** block goes inside an existing file at the named location.
+We will distinguish them before you copy.
+
+The database and uploaded files are real data.
+Only reset your own disposable tutorial data. Leave other applications alone.
+
+This tutorial uses .NET 10, Node.js 24, and the current Voyager template.
+Installation and downloads can take a while. There is no time limit.
+
+Ready? Let's [create the project](./step1.md).

@@ -1,8 +1,18 @@
 # Aiursoft Template Tutorial - Step 13 - After-Class Exercises
 
-This part is left for you to complete on your own. You can try adding more features. By now, completing the following features should no longer be a challenge for you.
+These are optional stretch exercises. You do not need to finish them to complete the tutorial.
 
-These features will not only greatly enrich your application but also allow you to deeply master professional knowledge in database design, backend architecture, frontend interaction, and performance optimization through hands-on practice. Have fun!
+Pick one that interests you. Start with the smallest useful version.
+It is normal to need more reading and a few attempts.
+
+Before coding, write down:
+
+- What should the user be able to do?
+- Who may read or change the new data?
+- What small check will prove it works?
+
+Keep the framework's existing login, permissions, storage, and job systems.
+If you change stored entities, review migrations for both supported database providers.
 
 ## Step 13.1 Markdown Supports Multiple Privacy Options
 
@@ -30,7 +40,11 @@ In addition to Markdown, we can support more formats, such as:
 
 ## Step 13.3 Search
 
-We can try implementing a search feature that allows users to search their documents by title or content. This can be achieved using full-text indexing or simple string matching. Even support for fuzzy search and advanced search options can be added.
+We can try implementing a search feature that allows users to search their documents by title or content.
+
+This can be achieved using full-text indexing or simple string matching.
+
+Even support for fuzzy search and advanced search options can be added.
 
 ## Step 13.4 Document Version History and Rollback
 
@@ -55,12 +69,27 @@ This requires careful design of the database structure, for example:
 
 ## Step 13.6 Performance Optimization: Paginated Loading
 
-If a user has hundreds or even thousands of documents, loading all documents at once on the "My Documents" page will cause slow page loading and put pressure on the server and database. By using paginated loading, only the documents on the current page are loaded, improving user experience.
+If a user has hundreds or even thousands of documents, loading all documents at once on the "My Documents" page will cause slow page loading and put pressure on the server and database.
 
-This requires adding two parameters `page` and `pageSize` to the list page, and using `Skip` and `Take` methods in database queries to implement pagination. These will be translated into SQL statements using `OFFSET` and `LIMIT`, thus querying only the required data.
+By using paginated loading, only the documents on the current page are loaded, improving user experience.
+
+This requires adding two parameters `page` and `pageSize` to the list page, and using `Skip` and `Take` methods in database queries to implement pagination.
+
+These will be translated into SQL statements using `OFFSET` and `LIMIT`, thus querying only the required data.
 
 ## Step 13.7 Support for PostgreSQL
 
-We have already supported SQLite and MySQL. Now we can try adding support for PostgreSQL. PostgreSQL is a powerful and widely used open-source relational database management system. By adding support for PostgreSQL, the application can adapt to more deployment environments and user needs.
+We have already supported SQLite and MySQL.
 
-In the design of Aiursoft Template, no core code needs to be modified to easily add support for new databases. You only need to mimic the implementations of MySql and Sqlite, create a new PostgreSql support class, and ensure the connection string and database type are correctly set in the configuration file.
+Now we can try adding support for PostgreSQL.
+
+PostgreSQL is a powerful and widely used open-source relational database management system.
+
+By adding support for PostgreSQL, the application can adapt to more deployment environments and user needs.
+
+This is a separate extension, not a connection-string-only change.
+
+Add the provider package and context, register it with the application's provider selection, and generate its migrations.
+Review the schema and repeat the note/ownership/deletion checks before switching any real data.
+
+Take your time. A working small extension is a good place to stop.

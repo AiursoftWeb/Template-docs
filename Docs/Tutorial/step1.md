@@ -1,180 +1,312 @@
-# Aiursoft Template Tutorial - Step 1 - Create New Project
+# Step 1 - Create and Run Your Project
 
-![preview-new-project](./images/new-login.png)
+![The generated login page](./images/new-login.png)
 
-## Step 1.1 Prepare Development Environment
+**Our goal:** see the unmodified application running and sign in once.
+We will write our own feature in the next chapter.
 
-The goal of this step is to create a brand new project. We recommend using [AnduinOS](https://www.anduinos.com) 1.3 or higher for hands-on development, as AnduinOS 1.3+ makes it very easy to install tools such as dotnet, bash, npm, git, docker, mysql, nginx, and more.
+## 1.1 Get the tools ready
 
-!!! tip "Aiursoft Template can run on almost all mainstream operating systems"
+The main path in this tutorial uses Bash on Linux, such as AnduinOS.
+Windows and macOS also work, but their installation instructions differ.
 
-    If you don't want to use AnduinOS, you can also develop on any operating system that supports .NET 10.0, such as Windows, macOS, or other Linux distributions.
+Install these tools before continuing:
 
-Before you begin, install Git, the .NET 10 SDK, Node.js 24 with npm, Docker, and an editor. Use the instructions for your operating system: [.NET on Ubuntu](https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-install), [Node.js](https://nodejs.org/en/download), [Docker Engine](https://docs.docker.com/engine/install/ubuntu/), and [Visual Studio Code](https://code.visualstudio.com/docs/setup/linux). Package names differ between Ubuntu and AnduinOS releases; do not mix distribution-specific installation commands.
+- **Git:** records changes to your source code. Use your operating system's software installer.
+- **.NET 10 SDK:** compiles and runs C#. Follow the [.NET installation instructions](https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-install) for your distribution.
+- **Node.js 24 and npm:** install the browser-side libraries. Follow the [Node.js installation instructions](https://nodejs.org/en/download).
+- **Docker Engine:** runs the example database and deployment container. Follow the [Docker installation instructions](https://docs.docker.com/engine/install/ubuntu/).
+- **An editor:** [Visual Studio Code](https://code.visualstudio.com/docs/setup/linux) or Rider is fine.
 
-Verify the development environment:
+Use the guide for your actual operating-system version.
+Do not copy an Ubuntu release's package setup into a different release.
+
+Now open a terminal. Let's check each tool separately.
 
 ```bash
 git --version
-dotnet --list-sdks  # Must include 10.0.x
-node --version     # Use v24.x
+```
+
+This asks Git to print its version. **Expected:** a line beginning with `git version`.
+
+```bash
+dotnet --list-sdks
+```
+
+This lists the installed .NET SDKs. **Expected:** at least one `10.0.x` entry.
+A runtime alone is not enough to compile the project.
+
+```bash
+node --version
+```
+
+This checks Node.js. **Expected:** `v24.x`.
+
+```bash
 npm --version
+```
+
+This checks Node's package manager. **Expected:** a version number.
+
+```bash
 docker --version
 ```
 
-Install the EF tool for the application's framework major version:
+This checks the Docker command. **Expected:** a Docker version.
+We will check that the Docker service works when we use it in Step 4.
+
+```bash
+docker buildx version
+```
+
+This checks the standard Buildx/BuildKit build component used by the template's Dockerfile.
+**Expected:** a Buildx version, not `unknown command`.
+If it is missing, finish the Buildx plugin installation from the Docker installation guide above.
+A Docker client version alone does not check that component.
+
+If a command says `command not found`, finish installing that tool first.
+You have not broken the project; we have not created it yet.
+
+## 1.2 Install the two .NET tools
+
+First, install the database migration tool:
 
 ```bash
 dotnet tool install --global dotnet-ef --version '10.*'
 ```
 
-If it is already installed, check `dotnet ef --version` and use `dotnet tool update --global dotnet-ef --version '10.*'` when needed. Add `$HOME/.dotnet/tools` to your PATH if commands cannot be found. Configure Git's author name and email for your own commits, and open the generated solution in your preferred editor.
+`--global` installs the command for your user account.
+`--version '10.*'` chooses an EF tool compatible with our .NET 10 application.
 
-To create a new Aiursoft Template project, you need to install Voyager, the scaffolding tool for Aiursoft Template. You can install it using the following command:
+**Expected:** a message saying `dotnet-ef` was successfully installed.
+
+If it says the tool is already installed, check its version after the PATH step below.
+Use `dotnet tool update --global dotnet-ef --version '10.*'` only if it needs updating.
+
+Next, install the project generator:
 
 ```bash
 dotnet tool install --global Aiursoft.Voyager
+```
+
+Voyager creates the starting application for us.
+**Expected:** a successful installation message.
+An already-installed message is also fine.
+
+Make the installed tools available in this terminal:
+
+```bash
+export PATH="$PATH:$HOME/.dotnet/tools"
+```
+
+`PATH` is the list of folders the terminal searches for commands.
+This adds the folder containing Voyager and the EF tool.
+It applies to this terminal; repeat it if a new terminal cannot find the tools.
+
+```bash
+dotnet ef --version
+```
+
+This checks the EF tool. **Expected:** version `10.x`.
+
+```bash
 voyager --version
 ```
 
-If you receive a prompt that the `voyager` command is not found, make sure your `~/.dotnet/tools` directory is in your `PATH` environment variable. You can use this command to temporarily resolve it:
+This checks Voyager. **Expected:** its version number.
+
+Voyager also creates a Git commit.
+If you have never configured Git, set your own name and email first.
+Replace both example values before running these commands:
 
 ```bash
-~/.dotnet/tools/voyager --version
+git config --global user.name "Your Name"
 ```
 
-If the above process went smoothly, you should now have all the necessary tools installed and be ready to start creating your first Aiursoft Template project!
+This is the author name Git will record on your commits.
 
-## Step 1.2 Create a New Project
+```bash
+git config --global user.email "you@example.com"
+```
 
-!!! note "Always start from this step when creating a new project."
+This is the author's email address. Use your own address.
 
-    This is the standard procedure for creating a new project. Whenever you want to create a new Aiursoft Template project, always start from this step.
+## 1.3 Create the empty folder
 
-We recommend using a unique namespace to avoid conflicts with other projects. Typically, we suggest using a format like `MyOrg.MyProject`, where `MyOrg` is your organization or company name, and `MyProject` is your project name.
+Let's put the project somewhere easy to find.
 
-Here, our template is for creating an application that converts markdown to HTML, so we'll name it `MyOrg.MarkToHtml`.
+```bash
+mkdir -p ~/Source
+```
 
-First, create a new folder to store your project:
+This creates a `Source` folder in your home directory if it does not exist.
+`-p` also makes it safe when that parent folder already exists.
+
+```bash
+cd ~/Source
+```
+
+This moves the terminal into that folder.
 
 ```bash
 mkdir MyOrg.MarkToHtml
+```
+
+This creates our new project's empty folder.
+If it already exists, stop and choose a different parent folder; do not delete existing work.
+
+```bash
 cd MyOrg.MarkToHtml
 ```
 
-Then use voyager to initialize the project:
+This moves into the new folder.
+Voyager uses this folder's name as the application name.
 
 ```bash
-~/.dotnet/tools/voyager new -t web-app-all-in-one
+pwd
 ```
 
-!!! warning "Make sure the directory name where you run Voyager is the project name you want every time you create a project"
+This prints your current folder.
+**Expected:** a path ending in `/Source/MyOrg.MarkToHtml`.
 
-    For example, if you want to create a project named `MyOrg.MarkToHtml`, make sure you run the `voyager new` command in a folder named `MyOrg.MarkToHtml`. Voyager will default to using the current directory name as the project name.
-
-You will notice the following files are generated:
+## 1.4 Let Voyager create the application
 
 ```bash
-.
-├── CODE_OF_CONDUCT.md
-├── Dockerfile
-├── .editorconfig
-├── .git
-├── .gitignore
-├── .gitlab-ci.yml
-├── install.sh
-├── LICENSE
-├── MyOrg.MarkToHtml.sln
-├── ninja.yaml
-├── nuget.config
-├── README.md
-├── src
-│   ├── MyOrg.MarkToHtml
-│   ├── MyOrg.MarkToHtml.Entities
-│   ├── MyOrg.MarkToHtml.InMemory
-│   ├── MyOrg.MarkToHtml.MySql
-│   └── MyOrg.MarkToHtml.Sqlite
-└── tests
-    ├── IntegrationTests
-    └── MyOrg.MarkToHtml.Tests.csproj
-
-15 directories, 17 files
+voyager new -t web-app-all-in-one
 ```
 
-Not all files here may be useful to you. Below is a brief description of each file:
-
-| File/Folder          | Description                                                                                      |
-| --------------------- | ------------------------------------------------------------------------------------------------ |
-| `CODE_OF_CONDUCT.md`  | Code of Conduct, this is just an example. You can safely delete it without affecting the project. |
-| `Dockerfile`          | Configuration file for running the application in a Docker container. It defines how to build and run the application environment in Docker. |
-| `.editorconfig`       | Code style configuration file, helps you and your team maintain consistent code style. You can modify or delete it as needed. |
-| `.git`                | Git version control metadata folder. Automatically generated when creating a new project, and also helps generate an initial commit. |
-| `.gitignore`          | List of files to be ignored by Git, specifying which files or folders should not be tracked by Git. Do not delete it. |
-| `.gitlab-ci.yml`      | GitLab CI/CD configuration file. If you are not using GitLab for continuous integration and deployment, you can delete it. |
-| `install.sh`          | A simple quick deployment script to help you quickly deploy the project on a server without Docker. You can modify or delete it as needed. |
-| `LICENSE`             | License file, specifying the terms of use and distribution of the project. You can modify or delete it as needed. |
-| `MyOrg.MarkToHtml.sln`| This is a Visual Studio solution file, containing all subprojects within the project. Do not delete it. |
-| `ninja.yaml`          | Configuration file for nuget ninja. If you are not using nuget ninja, you can delete it. |
-| `README.md`           | Project README file, containing basic information and usage instructions for the project. You can modify it as needed. |
-| `nuget.config`        | NuGet package manager configuration file. If you do not need custom package sources, you can delete it. |
-| `src/`                | This folder contains the project's source code. You can add or remove subprojects as needed. |
-| `tests/`              | This folder contains the project's test code. You can add or remove test projects as needed. |
-
-Next, you can open the `MyOrg.MarkToHtml.sln` solution file using Visual Studio Code or Jetbrains Rider and start writing code!
-
-## Step 1.3 Run the Project
-
-Before you start writing code, it's recommended that you compile and run the project to ensure everything is working properly.
-
-First, restore the frontend dependencies. You can use the following command to install the frontend dependencies:
+`new` creates a project. `-t` selects the `web-app-all-in-one` template.
+Wait for the downloads and generation to finish.
 
 ```bash
-cd ./src/MyOrg.MarkToHtml/wwwroot/
+ls
+```
+
+This lists the generated files.
+**Expected:** `MyOrg.MarkToHtml.sln`, `src`, `tests`, `Dockerfile`, and other project files.
+
+A few landmarks are enough for now:
+
+- `MyOrg.MarkToHtml.sln` groups the projects into one solution.
+- `src/MyOrg.MarkToHtml` is the web application. Most of our edits go here.
+- `src/MyOrg.MarkToHtml.Entities` contains database models.
+- The `.Sqlite` and `.MySql` projects contain provider-specific migrations.
+- `tests` contains the template's existing tests.
+- `Dockerfile` packages the application later.
+- `.git` stores Git history; `.gitignore` keeps build output out of commits.
+- `ninja.yaml`, `nuget.config`, and `.gitlab-ci.yml` support the existing project workflow.
+
+Keep these generated files. We do not need to remove anything to follow the tutorial.
+
+In your editor, choose **File → Open Folder** (or **Open** in Rider).
+Select `~/Source/MyOrg.MarkToHtml`, the folder containing the solution file.
+Keep the terminal in the repository root.
+
+## 1.5 Download the browser libraries
+
+```bash
+cd src/MyOrg.MarkToHtml/wwwroot
+```
+
+This moves to the web application's static-file folder.
+Its `package.json` lists the browser libraries.
+
+```bash
 npm install
-cd ../../..  # Back to the MyOrg.MarkToHtml repository root
 ```
 
-You can use the following command to compile the project:
+This downloads those libraries into `node_modules`.
+**Expected:** npm finishes without an error. Downloads may take a minute.
+
+```bash
+cd ../../..
+```
+
+Each `..` moves up one folder.
+Three of them take us from `wwwroot` back to the repository root.
+
+```bash
+pwd
+```
+
+**Expected:** the path ends in `/Source/MyOrg.MarkToHtml` again.
+If it ends in `wwwroot`, fix the folder before continuing.
+
+## 1.6 Give this experiment its own file storage
+
+```bash
+export Storage__Path="$PWD/.tutorial-data"
+```
+
+This tells the app to store uploaded files in this project's own folder.
+`$PWD` means the current folder. The double underscore represents a configuration section.
+
+We will explain environment variables in Step 7.
+For now, keep using this terminal so this setting stays available.
+
+In the repository root's `.gitignore`, add this line and save the file:
+
+```gitignore
+.tutorial-data/
+.tutorial-test-data/
+```
+
+These entries keep experimental uploads and later test files out of Git.
+
+Also append these entries to the existing `.dockerignore` in the repository root:
+
+```dockerignore
+.tutorial-data/
+.tutorial-test-data/
+**/app.db
+**/app.db-*
+```
+
+Keep its other rules. These additions keep local uploads, test files, and SQLite database/journal files out of Docker's build context.
+Git's ignore file and Docker's ignore file do different jobs; updating one does not update the other.
+Do not delete a shared `/tmp/data` folder to reset this app.
+
+## 1.7 Build and run
 
 ```bash
 dotnet build ./MyOrg.MarkToHtml.sln
 ```
 
-If the compilation is successful, you can run the project using the following command:
+This compiles the projects in the solution.
+**Expected:** `Build succeeded.` and `0 Error(s)`.
+If the build fails, read the first error before moving on.
 
 ```bash
 dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
 ```
 
-By default, the application runs on `http://localhost:5000`. Use the listening URL printed by the application if you override the port. Now, you can open your browser to access this address and check whether the application is working properly. Normally, you will see a welcome page.
+This starts the web application.
+`--project` identifies its C# project explicitly.
+The neighbouring `.aosproj` file is a packaging project; it is not the project we want to run.
 
-You can log in using the default account. The default account information is as follows:
+**Expected:** a listening address, normally `http://localhost:5000`.
+Leave this terminal running while you open that address in your browser.
 
-* Username: `admin`
-* Password: `Admin@123456!`
+Sign in with the development account:
 
-## Step 1.4 Configure the database used by the project (Optional)
+- Username: `admin`
+- Password: `Admin@123456!`
 
-!!! tip "This step is completely optional"
+These are development credentials. We will change the password before publishing in Step 12.
 
-    This step is completely optional. If you want to use the default configuration—using the simplest SQLite database—you can skip this step.
+## Checkpoint 1 - Your starting application works
 
-By default, the application uses SQLite as the database. This is configured in the `appsettings.json` file. If you want to use a different database (such as MySQL or SQL Server), you need to modify the connection string in the `appsettings.json` file. By default, the database will be automatically created and seeded on the first startup, and you will notice that the `app.db` file is created under the `src/MyOrg.MarkToHtml/` directory.
+Before continuing, check all four items:
 
-We recommend using [DbBrowser for SQLite](https://flathub.org/en/apps/org.sqlitebrowser.sqlitebrowser) to view and manage the SQLite database, i.e., the `app.db` file. Deleting this file will reset the application's data to its initial state.
+- The build has no errors.
+- The browser opens the app at the printed address.
+- The development administrator can sign in.
+- `src/MyOrg.MarkToHtml/app.db` now exists: the app created its SQLite database.
 
-## Step 1.5 Configure the file storage used by the project (Optional)
+No MySQL setup is needed yet. SQLite is the default.
+Uploaded files live in the isolated folder we configured above.
 
-By default, the application uses `/tmp/data` as the backend storage path in the file system. In Docker, the default storage path is `/data`.
+Press **Ctrl+C** in the server terminal and wait for the prompt.
+Nice work. You now have a working starting point.
 
-You can modify this path in the `appsettings.json` file. By default, this directory may contain the default profile pictures.
-
-Deleting this folder will reset the application's file storage to its initial state.
-
-## Conclusion
-
-Congratulations on completing the first step! You have now set up the development environment, initialized the git repository, successfully run a basic Aiursoft Template project, and understood its file structure, SQLite database, and file storage.
-
-Next, we will continue developing this project and add more features.
-
-The web project also contains a `.aosproj` packaging file. For commands inside that directory, specify `MyOrg.MarkToHtml.csproj` explicitly so the CLI can distinguish it from the packaging project. For isolated experiments, set `Storage__Path` to a writable project-specific directory instead of sharing `/tmp/data` with other applications.
+Continue with [Step 2](./step2.md).

@@ -4,6 +4,17 @@
 
 In the previous step, we successfully added the functionality to convert markdown to HTML. Next, we need to create a frontend page that allows users to input markdown and preview the generated HTML.
 
+
+**Before you edit:** stop the server with **Ctrl+C**.
+
+```bash
+cd ~/Source/MyOrg.MarkToHtml
+```
+
+This returns to the repository root. All `src/` paths below start here.
+
+**Our goal:** convert Markdown on a real page, with an editor and a safe preview.
+
 ## Step 3.1 Modify to Add Necessary Services to the Dependency Injection Container
 
 ASP.NET Core uses dependency injection to manage application services. To make Markdig and HtmlSanitizer available in the application, we need to add them to the dependency injection container.
@@ -15,7 +26,7 @@ using Ganss.Xss;
 using Markdig;
 ```
 
-Then locate the `public void ConfigureServices(IConfiguration configuration, IWebHostEnvironment environment, IServiceCollection services)` method and add the following code:
+Find `ConfigureServices` in Startup.cs. Inside its braces, insert the following statements immediately before the existing `// AppSettings.` comment. Keep the existing registrations below them:
 
 ```csharp
 // Add the markdown pipeline and HTML sanitizer
@@ -51,27 +62,44 @@ public class MarkToHtmlService(MarkdownPipeline pipeline, HtmlSanitizer sanitize
 }
 ```
 
-Note that here we implement the interface: `ITransientDependency` for the service. This indicates that the service is transient, and a new instance will be created for each request. Aiursoft Scanner will automatically register classes implementing this interface into the dependency injection container, without needing to modify the `Startup.cs` file.
+Note that here we implement the interface: `ITransientDependency` for the service.
+
+This indicates that the service is transient, and a new instance is created each time the service container resolves it.
+
+Aiursoft Scanner will automatically register classes implementing this interface into the dependency injection container, without needing to modify the `Startup.cs` file.
 
 Similarly, we request instances of `MarkdownPipeline` and `HtmlSanitizer` in the constructor. Since we have already registered them as singletons in the `Startup.cs` file, the same instance will be automatically injected here.
 
-!!! tip "On the lifecycle of dependency injection"
+### A short pause: what do the lifetimes mean?
 
-    * Singleton services create only one instance throughout the application's lifetime, suitable for stateless and thread-safe services. They can only depend on other Singleton services. They cannot depend on Scoped or Transient services.
-    * Scoped services create one instance per request lifecycle, suitable for services that need to maintain state across requests. They can depend on Singleton and Scoped services, but cannot depend on Transient services.
-    * Transient services create a new instance for each request, suitable for lightweight and stateless services. They can depend on any type of service, including Singleton, Scoped, and Transient.
+**Singleton:** the application shares one instance. Shared mutable state must be thread-safe.
 
-    Breaking the above rules may still allow the application to compile, and in some cases even run; however, it can easily lead to very peculiar lifecycle issues, resulting in hard-to-debug bugs.
+**Scoped:** one instance per request in a normal ASP.NET Core web application.
 
-Therefore, here we register `MarkdownPipeline` and `HtmlSanitizer` as Singleton, because they are black-box components, thread-safe, and reusable—i.e., stateless. Meanwhile, `MarkToHtmlService` is registered as Transient, as its creation cost is low and it is also stateless.
+**Transient:** a new instance each time the container resolves the service, even within the same request.
+
+A scoped service may depend on a transient service.
+Do not inject a scoped database context directly into a singleton; that captures request-scoped state for too long.
+
+These are the [.NET service-lifetime rules](https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection/service-lifetimes).
+You do not need to memorize them all right now.
+
+We build the Markdown pipeline once and share it.
+
+We also share the sanitizer, and do not change its configuration while requests run.
+
+The [sanitizer's thread-safety guidance](https://github.com/mganss/HtmlSanitizer#thread-safety) explains that restriction.
+
+Our conversion service is transient. The template discovers its `ITransientDependency` marker automatically.
 
 ## Step 3.3 Modify ViewModel
 
 To enable interaction between the frontend page and the backend service, we need a ViewModel. A ViewModel is a design pattern used to pass data from the controller to the view.
 
-Here, for simplicity, we directly modify the `./src/MyOrg.MarkToHtml/Models/HomeViewModels/IndexViewModel.cs` file, adding a new property `MarkdownInput` to store the user's input markdown content, and use the `OutputHtml` property to store the generated HTML content.
+Here, for simplicity, we directly modify the `./src/MyOrg.MarkToHtml/Models/HomeViewModels/IndexViewModel.cs` file, adding a new property `InputMarkdown` to store the user's input markdown content, and use the `OutputHtml` property to store the generated HTML content.
 
 ```csharp title="IndexViewModel.cs"
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using System.ComponentModel.DataAnnotations;
 using Aiursoft.UiStack.Layout;
 
@@ -100,15 +128,26 @@ public class IndexViewModel : UiStackLayoutViewModel
 
                                                 """;
 
+    [BindNever]
     public string OutputHtml { get; set; } = string.Empty;
 }
 ```
 
-Note that the `[Required]` attribute here indicates that the `InputMarkdown` property is required. If the user enters no content, an error message will be displayed when the form is submitted. If the user forces submission via HTTP Post, the server-side `ModelState.IsValid` will return false.
+Note that the `[Required]` attribute here indicates that the `InputMarkdown` property is required.
+
+If the user enters no content, an error message will be displayed when the form is submitted.
+
+If the user forces submission via HTTP Post, the server-side `ModelState.IsValid` will return false.
+
+InputMarkdown comes from the user. OutputHtml comes from our conversion service.
+The `[BindNever]` attribute keeps a posted form from supplying its own trusted HTML output.
+Our controller can still set that property after sanitization.
 
 ## Step 3.4 Modify Controller
 
-Controller, also known as the controller, is the C in the MVC pattern, responsible for handling user requests and returning responses. In our structure, the Controller will not directly render views, but instead pass data to the view model (ViewModel), which will then render the page.
+Controller, also known as the controller, is the C in the MVC pattern, responsible for handling user requests and returning responses.
+
+In our structure, the Controller will not directly render views, but instead pass data to the view model (ViewModel), which will then render the page.
 
 We need to modify the `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` file, adding dependency injection for `MarkToHtmlService`, and using this service in the `Index` method to convert the user's input markdown into HTML.
 
@@ -244,7 +283,13 @@ The View is the V in the MVC pattern, responsible for rendering the user interfa
 
 Clearly, the responsibility of the View is to render a visually appealing page, allowing users to input markdown and preview the generated HTML.
 
-When writing the View, you only need to respect the properties of the ViewModel. The View file is located at `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml`. By default, it may contain some sample content. Feel free to delete it entirely and make your modifications.
+When writing the View, you only need to respect the properties of the ViewModel.
+
+The View file is located at `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml`.
+
+By default, it may contain some sample content.
+
+Feel free to delete it entirely and make your modifications.
 
 ```html title="Index.cshtml"
 @using MyOrg.MarkToHtml.Controllers
@@ -347,7 +392,11 @@ For instance: `@* Something *@` is used to add comments; `@model` specifies the 
 
 !!! example "C# Code Blocks in Razor Syntax - Server-Side Rendering"
 
-    Of course, you can continue using familiar C# syntax to dynamically render content, such as `@if`, `@for`, `@foreach`, and so on. This technique allows you to easily render server-side data into the client-side page. However, note that it executes on the server, inserting the values of C# variables into the generated HTML before sending it to the client. Essentially, it's using C# to dynamically construct HTML, a technique known as "server-side rendering," which takes precedence over JavaScript and can run even without JavaScript; however, the downside is that it cannot be dynamically modified on the front end and consumes server resources.
+    Razor can use C# statements such as `@if` and `@foreach` to choose which HTML to send.
+
+    That C# runs on the server. The browser receives the resulting HTML, not the C# source.
+
+    This is server-side rendering. Browser interactions still belong in separate JavaScript files.
 
 In the following examples, we'll extensively use this technique to render pages.
 
@@ -467,7 +516,11 @@ Thus, we have introduced the CodeMirror styles and added some custom styles to e
 
     Since Aiursoft Template uses a custom view engine, ReSharper or Rider might not correctly recognize `@section styles`, leading to errors. To avoid this issue, we can use `@* ReSharper disable once Razor.SectionNotResolved *@` to instruct ReSharper to ignore this error.
 
-Note: Code enclosed in `@{ }` is a C# code block, which executes on the server side. The `@@` symbol is used to escape the `@` sign so it can be used within CSS. Here, we obtain a server-side variable `theme`, which dynamically sets the CodeMirror theme based on the user's theme preference.
+Note: Code enclosed in `@{ }` is a C# code block, which executes on the server side.
+
+The `@@` symbol is used to escape the `@` sign so it can be used within CSS.
+
+Here, we obtain a server-side variable `theme`, which dynamically sets the CodeMirror theme based on the user's theme preference.
 
 To ensure the editor control and preview area do not become too tall, we set their maximum height to 70vh (70% of the viewport height). This ensures they display well on most screens.
 
@@ -599,18 +652,39 @@ Then append this section to `Index.cshtml`:
 
 With this, we've achieved features such as jQuery Validation, CodeMirror initialization, copy buttons, automatic refresh when switching themes, improved table styling, and print buttons.
 
-Now, you can save all changes, recompile, and run the project:
+Save all four pieces: the service, model, controller, and view. Also save the separate editor script.
+
+
+## Checkpoint 3 - Your first page works
+
+Save the files in your editor first. Let's check this small piece before going on.
 
 ```bash
-# Working directory: repository root
 dotnet build ./MyOrg.MarkToHtml.sln
+```
+
+This compiles the solution. **Expected:** `Build succeeded.` with no errors.
+If it fails, stop here and check the first error's file and line number.
+
+```bash
 dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
 ```
 
-Normally, you can access `http://localhost:5000` in your browser and see a beautiful page that allows you to input markdown and preview the generated HTML. You can also try clicking the "Convert to HTML" button to check whether the generated HTML is correct. You can even copy the generated HTML or print a preview.
+This starts the app with the changes you just made.
+Open the listening address in your browser.
 
-## Conclusion
+- Open the home page. You should see the Markdown input and HTML output editors.
+- Enter `# Hello from my page` and click **Convert to HTML**.
+- The output should contain `<h1`; the Preview tab should show a heading.
+- Return to Code and click Copy. Expect the button to show its copied feedback.
+- Click the theme switch in the header and wait for the page to refresh. Expect the editors to follow the theme.
+- Open Preview and click Print. Expect the browser's print dialog; cancel it when you are done checking.
+- Try `<script>alert(1)</script>`. It must not execute in the preview.
+- Open the browser console if the editor is missing: check the CodeMirror file checks from Step 2.
 
-Congratulations on completing Step 3! You have now successfully added a brand-new page that allows users to input markdown and preview the generated HTML. By properly using ASP.NET Core's dependency injection, MVC pattern, Razor views, and other technologies, you can easily extend your application's functionality.
+This chapter only converts text. Saving notes starts in Step 5.
 
-Aiursoft Template provides powerful infrastructure, allowing you to focus on implementing business logic without worrying about low-level details. Developing a simple application has never been this easy and efficient!
+Finished checking? Press **Ctrl+C** and wait for the terminal prompt.
+You have a working stopping point now.
+
+Continue with [Step 4](./step4.md).

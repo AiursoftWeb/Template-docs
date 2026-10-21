@@ -1,47 +1,187 @@
-# Step 11 - Localize the Application
+# Step 11 - Let the App Speak Another Language
 
-Keep English as the source language. The template already supports view localization and localized validation. Translate resources for the existing application rather than adding translated copies of controllers or views.
+**Our goal:** generate one language, select it in the browser, and check the new pages.
+English stays the source language. We will generate resources, not write a second set of views.
 
-## 11.1 Make new strings discoverable
+Stop the server with **Ctrl+C** before changing resource files.
 
-The views in this tutorial use literal keys, for example:
+## 11.1 Check that our text can be found
+
+The tool looks for literal English keys such as this one:
 
 ```cshtml
 <h1>@Localizer["Recycle bin"]</h1>
 ```
 
-Use localized DataAnnotations as shown in [Model Validation](../Features/Validation.md). New page titles and permission labels must also be discoverable through the existing view-model injection and permission definitions. Do not build localization keys from user input.
+Our Uploads and RecycleBin views already use this pattern.
+The validation model uses the template's DataAnnotations localization support.
 
-JavaScript stays in separate files. Pass localized messages through hidden HTML or data attributes, as in Step 3; a JavaScript file containing `@Localizer[...]` is not processed by Razor.
+Keep browser scripts in separate JavaScript files.
+Step 3's hidden HTML attributes carry translated messages to that script.
+A JavaScript file cannot evaluate Razor syntax.
 
-## 11.2 Generate one language first
+## 11.2 Prepare the translation tool
 
-Install the existing translation tool:
+```bash
+cd ~/Source/MyOrg.MarkToHtml
+```
+
+This returns to the repository root.
 
 ```bash
 dotnet tool install --global Aiursoft.Dotlang
 ```
 
-Open a Bash shell in `src/MyOrg.MarkToHtml` (the directory containing the web csproj). Obtain your own authorized Ollama endpoint, model and API token. The following uses the Aiursoft localization endpoint as an example; substitute your own values if you are developing outside Aiursoft.
+This installs the existing resource-generation tool.
+**Expected:** a successful installation message. An already-installed message is fine.
 
 ```bash
-# Working directory: src/MyOrg.MarkToHtml
+cd src/MyOrg.MarkToHtml
+```
+
+This selects the web project, where the tool can find our csproj.
+Do not run these commands in the solution root.
+
+```bash
+pwd
+```
+
+**Expected:** a path ending in `/src/MyOrg.MarkToHtml`.
+
+## 11.3 Get your own translation access
+
+The following example uses Aiursoft's Ollama-compatible localization endpoint.
+You need an authorized API token and access to its localization model.
+
+If you develop outside Aiursoft, substitute your own endpoint and model.
+If you do not have access yet, pause this exercise here; the English app still works.
+Do not borrow a deployed application's token.
+
+```bash
 read -rsp 'Ollama API token: ' OLLAMA_API_KEY
+```
+
+This waits for you to paste your own token and press Enter.
+The token is not shown while you type. That is intentional.
+
+```bash
 printf '\n'
+```
+
+This prints a newline so the next terminal output starts on a fresh line.
+It does not print the token.
+
+Do not enable shell tracing, take process listings during translation, or commit the token.
+The tool receives it as a command argument while it runs.
+
+## 11.4 Generate one kind of resource at a time
+
+```bash
 dotlang auto-generate-view-injections-for-aiursoft-template --path .
+```
+
+This adds discoverable page-title and navigation keys to the template's existing injector.
+`--path .` means the current web-project folder.
+**Expected:** the tool reports the strings it found or added.
+
+```bash
 dotlang generate-resx-csharp --path . --languages zh-CN --model aiursoft-localization:latest --token "$OLLAMA_API_KEY" --instance https://ollama.aiursoft.com/api/chat -c 2
+```
+
+This translates C# Localizer keys for Simplified Chinese.
+`--languages zh-CN` limits this first exercise to one language.
+`--model` and `--instance` choose the authorized model and endpoint.
+`-c 2` limits concurrent translation work to two requests.
+
+```bash
 dotlang generate-resx-view --path . --languages zh-CN --model aiursoft-localization:latest --token "$OLLAMA_API_KEY" --instance https://ollama.aiursoft.com/api/chat -c 2
+```
+
+This translates keys from Razor views, including the two new pages.
+**Expected:** view resource files under Resources, with translated values.
+It can take a while. Wait for the prompt to return.
+
+```bash
 dotlang generate-resx-annotations --path . --languages zh-CN --model aiursoft-localization:latest --token "$OLLAMA_API_KEY" --instance https://ollama.aiursoft.com/api/chat -c 2
+```
+
+This handles display and validation annotations.
+Check the actual generated resources; an exit code alone does not prove a key was found.
+
+```bash
 dotlang auto-dedup-resx-keys --path .
+```
+
+This removes redundant resource keys using the tool's existing rules.
+It can also touch existing resource languages; the translation commands above were limited to zh-CN.
+Review its changes along with the generated files.
+
+```bash
 unset OLLAMA_API_KEY
 ```
 
-Do not enable shell tracing or commit the token. The token is passed as a CLI argument, so do not capture process listings while translation runs. These commands can modify source injections as well as resources: inspect the diff before committing. For larger language sets, expand `--languages` after verifying one language. Translation requires a reachable service and an authorized token; it is not an offline build step.
+This removes the token variable from this terminal.
+Do this after the generation commands, including when a command fails and you decide to stop.
 
-## 11.3 Verify the output
+## Checkpoint 11A - Resources actually exist
 
-Inspect the generated `Resources` files for Home, Uploads and RecycleBin, and confirm that new labels such as `Recycle bin` and `Upload a note image` have translated values. A successful process exit is not evidence that every key was extracted. Check that DataAnnotations resources match their actual model type and that placeholders remain intact.
+In the editor, look under Resources for the generated view files.
+Check both Uploads/Index and RecycleBin/Index.
 
-Build from the repository root, restart the app and select the target language from the language selector. Check navigation, page titles, form labels, invalid-input messages and the editor's Copy feedback. English fallback is expected for missing resources, but it is not proof that translation succeeded. Commit the generated resources and reviewed source injections together.
+Find the keys `Upload a note image` and `Recycle bin`.
+Their zh-CN values should be translated, not empty.
+
+Check the controller, page-title, and annotation resources too.
+Keep format placeholders such as `{0}` intact.
+
+Review the diff. The tool can change source injections as well as resx files.
+Do not handwrite parallel translation files to hide a missing extraction result.
+
+## Checkpoint 11B - See the language in the app
+
+```bash
+cd ../..
+```
+
+This returns from the web project to the repository root.
+
+```bash
+dotnet build ./MyOrg.MarkToHtml.sln
+```
+
+This compiles the generated resources into the application.
+**Expected:** a successful build.
+
+```bash
+dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```
+
+This starts the newly built app.
+
+In the browser:
+
+1.
+
+Sign in and open the language selector.
+2.
+
+Select Simplified Chinese.
+3.
+
+Open Uploads and RecycleBin.
+
+Check that the headings changed.
+4.
+
+Check the page title, validation feedback, and editor Copy feedback.
+5.
+
+Switch back to English and confirm the same actions still work.
+
+A changed language code alone is not success. Read the visible text.
+English fallback means a resource may be missing; investigate that key.
+
+Save the reviewed injections and generated resources together in Git.
+Press **Ctrl+C** when you are done checking.
 
 Continue with [Step 12](./step12.md).
