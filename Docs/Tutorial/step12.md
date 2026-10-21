@@ -62,7 +62,7 @@ Put the container behind the target server's existing HTTPS reverse proxy. Proxy
 
 Register an independent confidential client with your OIDC provider. Use a strict callback such as `https://notes.example.com/signin-oidc`, an appropriate issuer/authority, and the `openid`, `profile` and `email` scopes. Configure the provider to return the username, immutable subject, display name, email and groups expected by the application. Restrict login admission at the identity provider if this is an internal business.
 
-Keep endpoint and feature choices in reviewed deployment configuration. Store the client secret in the server's protected secret configuration, not Git. For a standalone Docker deployment, a mode-0600 private env file can contain `AppSettings__OIDC__ClientId` and `AppSettings__OIDC__ClientSecret`. Replace the example public values below and recreate the container with its existing data volume:
+Keep endpoint and feature choices in reviewed deployment configuration. Store the client secret in the server's protected secret configuration, not Git. For a standalone Docker deployment, a mode-0600 private env file contains `AppSettings__OIDC__ClientSecret`; declare the non-secret client ID with the other public settings. Replace the example public values below and recreate the container with its existing data volume:
 
 ```bash
 sudo docker run -d --name marktohtml \
@@ -70,6 +70,7 @@ sudo docker run -d --name marktohtml \
   -v marktohtml-data:/data \
   --env-file /etc/marktohtml/oidc.env \
   -e AppSettings__AuthProvider=OIDC \
+  -e AppSettings__OIDC__ClientId=notes-client \
   -e AppSettings__OIDC__Authority=https://identity.example.com/application/o/notes/ \
   -e AppSettings__OIDC__RolePropertyName=groups \
   -e AppSettings__AllowAnonymousUsage=false \
