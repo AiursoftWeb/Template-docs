@@ -40,6 +40,22 @@ Keep CSPROJ_PATH and PROJ_NAME pointing at **MyOrg.MarkToHtml**.
 If you see `hub.myOrg.com/myOrg/...`, correct those image addresses before building.
 An `invalid reference format` error here is not a C# error.
 
+### Check registry access before building
+
+The base images are hosted on Aiursoft's registry, which requires authorized access.
+If this Docker account is not already logged in, obtain your own registry credentials first.
+
+```bash
+sudo docker login hub.aiursoft.com
+```
+
+This signs the same sudo Docker client we use for building into that registry.
+Enter your own registry username, then the authorized registry password or access token at the hidden prompt.
+**Expected:** `Login Succeeded`.
+
+A login without sudo uses a different user's credential store on this Linux setup.
+Do not copy someone else's token or create substitute base images to get past an access error.
+
 ## 12.2 Check the application before packaging
 
 ```bash
@@ -258,8 +274,40 @@ External login admission and application permission grants are separate decision
 
 ### Keep only the secret in the private file
 
-On the server, use an editor to create `/etc/marktohtml/oidc.env` outside the repository.
-Its content is one line, with your actual client secret:
+On the server, create a dedicated directory outside the repository:
+
+```bash
+sudo mkdir -p /etc/marktohtml
+```
+
+This creates the configuration directory if it does not exist.
+
+```bash
+sudo touch /etc/marktohtml/oidc.env
+```
+
+This creates the file if it is missing; it does not erase an existing file.
+
+```bash
+sudo chown root:root /etc/marktohtml/oidc.env
+```
+
+This assigns the file to root for this root-administered Docker example.
+
+```bash
+sudo chmod 600 /etc/marktohtml/oidc.env
+```
+
+This lets only its owner read or write the file.
+
+```bash
+sudoedit /etc/marktohtml/oidc.env
+```
+
+This opens the server's configured editor with controlled write access to that file.
+Use an editor you know; ask the server operator for help if its editor is unfamiliar.
+
+Enter one line, with your actual client secret, then save and close the editor:
 
 ```text
 AppSettings__OIDC__ClientSecret=replace-with-your-real-client-secret
@@ -286,7 +334,6 @@ sudo docker run -d --name marktohtml \
   -e AppSettings__AuthProvider=OIDC \
   -e AppSettings__OIDC__ClientId=notes-client \
   -e AppSettings__OIDC__Authority=https://identity.example.com/application/o/notes/ \
-  -e AppSettings__OIDC__RolePropertyName=groups \
   -e AppSettings__AllowAnonymousUsage=false \
   myorg/marktohtml:local
 ```
@@ -299,10 +346,9 @@ Each `-e` sets one application setting:
 - AuthProvider selects external OIDC login.
 - ClientId identifies the client you registered.
 - Authority is that client's actual identity-provider issuer/authority.
-- RolePropertyName names the groups claim the provider returns.
 - AllowAnonymousUsage=false requires login before conversion as well as before saving notes.
 
-Other identity claims default to `preferred_username`, `sub`, `name`, and `email`.
+The template already expects `groups`, `preferred_username`, `sub`, `name`, and `email` for the identity claims.
 Override them only if your provider uses different names.
 Put this configuration in the target deployment's normal reviewed format, such as Compose.
 

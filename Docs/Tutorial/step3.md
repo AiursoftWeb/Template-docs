@@ -386,7 +386,11 @@ For instance: `@* Something *@` is used to add comments; `@model` specifies the 
 
 !!! example "C# Code Blocks in Razor Syntax - Server-Side Rendering"
 
-    Of course, you can continue using familiar C# syntax to dynamically render content, such as `@if`, `@for`, `@foreach`, and so on. This technique allows you to easily render server-side data into the client-side page. However, note that it executes on the server, inserting the values of C# variables into the generated HTML before sending it to the client. Essentially, it's using C# to dynamically construct HTML, a technique known as "server-side rendering," which takes precedence over JavaScript and can run even without JavaScript; however, the downside is that it cannot be dynamically modified on the front end and consumes server resources.
+    Razor can use C# statements such as `@if` and `@foreach` to choose which HTML to send.
+
+    That C# runs on the server. The browser receives the resulting HTML, not the C# source.
+
+    This is server-side rendering. Browser interactions still belong in separate JavaScript files.
 
 In the following examples, we'll extensively use this technique to render pages.
 

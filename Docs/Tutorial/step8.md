@@ -122,7 +122,11 @@ public class NoBadWordsAttribute : ValidationAttribute
 
     `ValidationAttribute` is the base class for all validation attributes. By inheriting from it and overriding the `IsValid` method, we can define our own validation rules.
 
-    We choose to override the `IsValid(object? value, ValidationContext validationContext)` overload because it is more powerful. The `validationContext` parameter not only provides contextual information about the validated property (such as the property name `DisplayName`), but also allows us to access the **dependency injection container** (`validationContext.GetService`), enabling us to retrieve service instances like `BadWordFilterService`.
+    We use the overload that receives a ValidationContext.
+
+    It tells us which property is being checked and gives us its display name.
+
+    Its GetService method also lets us obtain BadWordFilterService from dependency injection.
 
     The logic of this code is straightforward:
 

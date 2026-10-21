@@ -476,12 +476,16 @@ Every time you modify any entity class, you should repeat the steps in 4.3.1 and
 
 !!! warning "After resetting the database or deleting users from the database, you must log out all currently logged-in users!"
 
-    If you reset the database or delete users from the database, be sure to log out the currently logged-in user. Aiursoft Template's authentication issues a signed Token in the Cookie. If a user is deleted—such as when switching databases or resetting the database—the Token remains valid, but the user no longer exists. In this case, the user needs to log in again to obtain a new Token. Otherwise, exceptions will occur when accessing data.
+    Sign out before switching or resetting the tutorial database.
+
+    The browser can still hold a valid login cookie for an account that no longer exists in the selected database.
+
+    Sign in again after the change. This gives the app a fresh identity from the correct database.
 
     Do not delete shared data-protection keys. For a disposable experiment, use a fresh isolated database and sign out before switching databases. Applications that share a user profile can also share the key directories below:
 
     * Local debugging: `~/.aspnet/DataProtection-Keys` directory
-    * Docker environment: `/data/aspnet/DataProtection-Keys` directory
+    * Docker environment: `/data/.aspnet/DataProtection-Keys` directory
 
 ## Step 4.4 Run the application and verify database auto-migration (optional)
 

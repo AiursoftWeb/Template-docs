@@ -87,6 +87,9 @@ PostgreSQL is a powerful and widely used open-source relational database managem
 
 By adding support for PostgreSQL, the application can adapt to more deployment environments and user needs.
 
-In the design of Aiursoft Template, no core code needs to be modified to easily add support for new databases.
+This is a separate extension, not a connection-string-only change.
 
-You only need to mimic the implementations of MySql and Sqlite, create a new PostgreSql support class, and ensure the connection string and database type are correctly set in the configuration file.
+Add the provider package and context, register it with the application's provider selection, and generate its migrations.
+Review the schema and repeat the note/ownership/deletion checks before switching any real data.
+
+Take your time. A working small extension is a good place to stop.
