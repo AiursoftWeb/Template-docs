@@ -29,6 +29,7 @@ Create `src/MyOrg.MarkToHtml/Controllers/UploadsController.cs`:
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using MyOrg.MarkToHtml.Entities;
 using MyOrg.MarkToHtml.Models.UploadsViewModels;
 using MyOrg.MarkToHtml.Services;
@@ -37,7 +38,8 @@ using MyOrg.MarkToHtml.Services.FileStorage;
 namespace MyOrg.MarkToHtml.Controllers;
 
 [Authorize]
-public class UploadsController(UserManager<User> users, StorageService storage) : Controller
+public class UploadsController(UserManager<User> users, StorageService storage,
+    IStringLocalizer<UploadsController> localizer) : Controller
 {
     [HttpGet]
     public IActionResult Index() => this.StackView(new IndexViewModel());
@@ -57,7 +59,7 @@ public class UploadsController(UserManager<User> users, StorageService storage) 
         }
         if (!System.IO.File.Exists(storage.GetFilePhysicalPath(path)))
         {
-            ModelState.AddModelError(nameof(model.FilePath), "Upload an image first.");
+            ModelState.AddModelError(nameof(model.FilePath), localizer["Upload an image first."]);
             return this.StackView(model);
         }
         model.ImageUrl = storage.RelativePathToInternetUrl(path);

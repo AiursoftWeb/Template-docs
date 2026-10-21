@@ -481,97 +481,97 @@ Create `wwwroot/scripts/markdown-editor.js` with the following code. Keep execut
 
 ```javascript
 const config = document.getElementById("markdown-editor-config");
-        document.addEventListener("DOMContentLoaded", function () {
-            let markdownEditorInstance;
-            let htmlOutputInstance;
+document.addEventListener("DOMContentLoaded", function () {
+    let markdownEditorInstance;
+    let htmlOutputInstance;
 
-            // --- jQuery Validation Setup. Don't ignore hidden fields (CodeMirror will hide the original textarea) ---
-            if ($.validator) {
-                $.validator.setDefaults({
-                    ignore: []
-                });
+    // --- jQuery Validation Setup. Don't ignore hidden fields (CodeMirror will hide the original textarea) ---
+    if ($.validator) {
+        $.validator.setDefaults({
+            ignore: []
+        });
+    }
+
+    // --- CodeMirror Initialization ---
+    if (typeof CodeMirror !== 'undefined') {
+        if (!document.getElementById('markdown-editor').CodeMirror) {
+            markdownEditorInstance = CodeMirror.fromTextArea(document.getElementById('markdown-editor'), {
+                lineNumbers: true,
+                mode: 'markdown',
+                theme: config.dataset.theme,
+                viewportMargin: Infinity
+            });
+
+            markdownEditorInstance.on('change', function() {
+                // For validator to work, we need to update the underlying textarea
+                markdownEditorInstance.save();
+            });
+        }
+        if (!document.getElementById('html-output').CodeMirror) {
+            htmlOutputInstance = CodeMirror.fromTextArea(document.getElementById('html-output'), {
+                lineNumbers: true,
+                mode: 'xml',
+                readOnly: true,
+                theme: config.dataset.theme,
+                viewportMargin: Infinity
+            });
+        }
+    }
+
+    // --- Copy to Clipboard Handling ---
+    const copyButton = document.getElementById('copy-button');
+    if (copyButton && htmlOutputInstance) {
+        copyButton.addEventListener('click', function () {
+            const codeToCopy = htmlOutputInstance.getValue();
+            if (!codeToCopy) {
+                return;
             }
+            navigator.clipboard.writeText(codeToCopy).then(function () {
+                copyButton.textContent = config.dataset.copied || "Copied!";
+            }, function (err) {
+                console.error('Could not copy text: ', err);
+                alert(config.dataset.copyFailed);
+            });
+        });
+    }
 
-            // --- CodeMirror Initialization ---
-            if (typeof CodeMirror !== 'undefined') {
-                if (!document.getElementById('markdown-editor').CodeMirror) {
-                    markdownEditorInstance = CodeMirror.fromTextArea(document.getElementById('markdown-editor'), {
-                        lineNumbers: true,
-                        mode: 'markdown',
-                        theme: config.dataset.theme,
-                        viewportMargin: Infinity
-                    });
+    // --- Theme Toggle Handling ---
+    const themeToggleButton = document.querySelector('.js-theme-toggle');
+    const markdownForm = document.getElementById('markdown-form');
+    if (themeToggleButton && markdownForm) {
+        themeToggleButton.addEventListener('click', function () {
+            // Submit the form after switching theme to refresh CodeMirror themes
+            setTimeout(() => {
+                markdownForm.submit();
+            }, 1000);
+        });
+    }
 
-                    markdownEditorInstance.on('change', function() {
-                        // For validator to work, we need to update the underlying textarea
-                        markdownEditorInstance.save();
-                    });
-                }
-                if (!document.getElementById('html-output').CodeMirror) {
-                    htmlOutputInstance = CodeMirror.fromTextArea(document.getElementById('html-output'), {
-                        lineNumbers: true,
-                        mode: 'xml',
-                        readOnly: true,
-                        theme: config.dataset.theme,
-                        viewportMargin: Infinity
-                    });
-                }
-            }
-
-            // --- Copy to Clipboard Handling ---
-            const copyButton = document.getElementById('copy-button');
-            if (copyButton && htmlOutputInstance) {
-                copyButton.addEventListener('click', function () {
-                    const codeToCopy = htmlOutputInstance.getValue();
-                    if (!codeToCopy) {
-                        return;
-                    }
-                    navigator.clipboard.writeText(codeToCopy).then(function () {
-                        copyButton.innerHTML = config.dataset.copied;
-                    }, function (err) {
-                        console.error('Could not copy text: ', err);
-                        alert(config.dataset.copyFailed);
-                    });
-                });
-            }
-
-            // --- Theme Toggle Handling ---
-            const themeToggleButton = document.querySelector('.js-theme-toggle');
-            const markdownForm = document.getElementById('markdown-form');
-            if (themeToggleButton && markdownForm) {
-                themeToggleButton.addEventListener('click', function () {
-                    // Submit the form after switching theme to refresh CodeMirror themes
-                    setTimeout(() => {
-                        markdownForm.submit();
-                    }, 1000);
-                });
-            }
-
-            // --- Styling Tables in the Preview Pane ---
-            function stylePreviewTables() {
-                const previewArea = document.getElementById('preview');
-                if (!previewArea) return;
-                const tables = previewArea.querySelectorAll('table');
-                tables.forEach(table => {
-                    table.classList.add('table', 'table-striped', 'table-bordered');
-                    if (!table.parentElement.classList.contains('table-responsive')) {
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'table-responsive';
-                        table.parentNode.insertBefore(wrapper, table);
-                        wrapper.appendChild(table);
-                    }
-                });
-            }
-            stylePreviewTables();
-
-            // --- Print Button Handling ---
-            const printButton = document.getElementById('print-button');
-            if (printButton) {
-                printButton.addEventListener('click', function () {
-                    window.print();
-                });
+    // --- Styling Tables in the Preview Pane ---
+    function stylePreviewTables() {
+        const previewArea = document.getElementById('preview');
+        if (!previewArea) return;
+        const tables = previewArea.querySelectorAll('table');
+        tables.forEach(table => {
+            table.classList.add('table', 'table-striped', 'table-bordered');
+            if (!table.parentElement.classList.contains('table-responsive')) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'table-responsive';
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
             }
         });
+    }
+    stylePreviewTables();
+
+    // --- Print Button Handling ---
+    const printButton = document.getElementById('print-button');
+    if (printButton) {
+        printButton.addEventListener('click', function () {
+            window.print();
+        });
+    }
+});
 ```
 
 Then append this section to `Index.cshtml`:
@@ -595,7 +595,7 @@ Then append this section to `Index.cshtml`:
 
     Similarly, `@section scripts` is a predefined section in the template file used to insert page-specific scripts. Reference page-specific JavaScript files here. It will appear at the bottom of the page. Reference separate JavaScript files from this section, and pass localized text through HTML attributes.
 
-> In the code above, we use the trick `@(theme)` to dynamically set the CodeMirror theme to match the user's theme preference. This is a Razor feature that executes on the server side, inserting the value of the C# variable into the generated HTML before sending it to the client for execution. Refer to the "server-side rendering" technique mentioned above.
+> The view renders `@theme` into the hidden element's `data-theme` attribute. The separate JavaScript file reads that value when it initializes CodeMirror. Localized copy feedback follows the same pattern.
 
 With this, we've achieved features such as jQuery Validation, CodeMirror initialization, copy buttons, automatic refresh when switching themes, improved table styling, and print buttons.
 

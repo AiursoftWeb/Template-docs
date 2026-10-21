@@ -4,7 +4,15 @@ First verify the application in a persistent local Docker container. Then use th
 
 ## 12.1 Verify the frontend and build the image
 
-From the repository root:
+Voyager renames the application paths and namespace in the Dockerfile, but it can also replace the registry owner with `myOrg`. The infrastructure images still belong to Aiursoft. Before building, check that the three `FROM` lines use the original image locations below; keep `CSPROJ_PATH` and `PROJ_NAME` set to your new application:
+
+```dockerfile
+FROM --platform=$BUILDPLATFORM hub.aiursoft.com/node:24-alpine AS npm-env
+FROM --platform=$BUILDPLATFORM hub.aiursoft.com/aiursoft/internalimages/dotnet AS build-env
+FROM hub.aiursoft.com/aiursoft/internalimages/dotnetonlyruntime
+```
+
+These are the three existing stages, not a replacement Dockerfile. Correct only their image addresses if Voyager changed them. From the repository root:
 
 ```bash
 npm --prefix ./src/MyOrg.MarkToHtml/wwwroot install
@@ -14,7 +22,7 @@ dotnet build ./MyOrg.MarkToHtml.sln
 sudo docker build -t myorg/marktohtml:local .
 ```
 
-The generated Dockerfile has already been renamed by Voyager. Preserve its multi-stage build, frontend pruning, initialization and health check. Building the image requires access to the registries used by that Dockerfile. Review build errors rather than changing application image sources to hide a registry problem.
+Preserve the generated multi-stage build, frontend pruning, initialization and health check. Building the image requires access to the registries used by that Dockerfile. Review build errors rather than changing application image sources to hide a registry problem.
 
 ## 12.2 Start with persistent SQLite and file storage
 
