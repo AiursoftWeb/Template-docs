@@ -10,14 +10,14 @@ ASP.NET Core uses dependency injection to manage application services. To make M
 
 First, modify the `./src/MyOrg.MarkToHtml/Startup.cs` file, and add the necessary using statements:
 
-```csharp title="添加 using 语句，Startup.cs"
+```csharp
 using Ganss.Xss;
 using Markdig;
 ```
 
 Then locate the `public void ConfigureServices(IConfiguration configuration, IWebHostEnvironment environment, IServiceCollection services)` method and add the following code:
 
-```csharp title="配置依赖注入，Startup.cs"
+```csharp
 // Add the markdown pipeline and HTML sanitizer
 var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 services.AddSingleton(pipeline);
@@ -114,14 +114,14 @@ We need to modify the `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` fil
 
 Modify its constructor, adding a parameter for `MarkToHtmlService`:
 
-```csharp title="修改 HomeController 构造函数"
+```csharp
 public class HomeController(
     MarkToHtmlService mtohService) : Controller
 ```
 
 Next, modify the `[RenderInNavBar]` attribute of the `GET` method in the `Index` method, ensuring its name has been updated to "Convert Document":
 
-```csharp title="修改 HomeController 的 Index 方法的 RenderInNavBar 特性"
+```csharp
 [RenderInNavBar(
 NavGroupName = "Features",
 NavGroupOrder = 1,
@@ -134,7 +134,7 @@ LinkOrder = 1)]
 
 Then **add** a new `Index` method to handle POST requests, converting the input markdown to HTML:
 
-```csharp title="添加 Index POST 方法"
+```csharp
 [HttpPost]
 [ValidateAntiForgeryToken]
 public IActionResult Index(IndexViewModel model)
@@ -159,7 +159,7 @@ public IActionResult Index(IndexViewModel model)
 
     At this point, our `HomeController.cs` file should look something like this:
 
-```csharp title="完整的 HomeController.cs"
+```csharp
 using MyOrg.MarkToHtml.Models.HomeViewModels;
 using MyOrg.MarkToHtml.Services;
 using Aiursoft.UiStack.Navigation;
@@ -359,7 +359,7 @@ First, recall when we installed `codemirror`? Now we need to import it into the 
 
 At the end of the view file above, add the following code:
 
-```html title="为 Index.cshtml 添加样式"
+```html
 @{
     var isDarkMode = Context.Request.Cookies[ThemeController.ThemeCookieKey] == true.ToString();
     var theme = isDarkMode ? "material" : "eclipse";
@@ -477,16 +477,10 @@ Clearly, we still need some JavaScript code to initialize the CodeMirror editor 
 
 Continue adding the following code at the end of the view file:
 
-```html title="为 Index.cshtml 添加脚本"
+Create `wwwroot/scripts/markdown-editor.js` with the following code. Keep executable JavaScript out of Razor; the view passes localized labels and the theme through data attributes.
 
-@* ReSharper disable once Razor.SectionNotResolved *@
-@section scripts {
-    <script src="~/node_modules/codemirror/lib/codemirror.js"></script>
-    <script src="~/node_modules/codemirror/mode/markdown/markdown.js"></script>
-    <script src="~/node_modules/codemirror/mode/xml/xml.js"></script>
-    <script src="~/node_modules/codemirror/addon/edit/closebrackets.js"></script>
-    <script src="~/node_modules/codemirror/addon/edit/matchbrackets.js"></script>
-    <script>
+```javascript
+const config = document.getElementById("markdown-editor-config");
         document.addEventListener("DOMContentLoaded", function () {
             let markdownEditorInstance;
             let htmlOutputInstance;
@@ -504,7 +498,7 @@ Continue adding the following code at the end of the view file:
                     markdownEditorInstance = CodeMirror.fromTextArea(document.getElementById('markdown-editor'), {
                         lineNumbers: true,
                         mode: 'markdown',
-                        theme: '@(theme)',
+                        theme: config.dataset.theme,
                         viewportMargin: Infinity
                     });
 
@@ -518,7 +512,7 @@ Continue adding the following code at the end of the view file:
                         lineNumbers: true,
                         mode: 'xml',
                         readOnly: true,
-                        theme: '@(theme)',
+                        theme: config.dataset.theme,
                         viewportMargin: Infinity
                     });
                 }
@@ -533,10 +527,10 @@ Continue adding the following code at the end of the view file:
                         return;
                     }
                     navigator.clipboard.writeText(codeToCopy).then(function () {
-                        copyButton.innerHTML = `@Localizer["Copied!"]`;
+                        copyButton.innerHTML = config.dataset.copied;
                     }, function (err) {
                         console.error('Could not copy text: ', err);
-                        alert('@Localizer["Failed to copy text."]');
+                        alert(config.dataset.copyFailed);
                     });
                 });
             }
@@ -578,13 +572,28 @@ Continue adding the following code at the end of the view file:
                 });
             }
         });
-    </script>
+```
+
+Then append this section to `Index.cshtml`:
+
+```html
+<div id="markdown-editor-config" hidden data-theme="@theme"
+     data-copied="@Localizer["Copied!"]"
+     data-copy-failed="@Localizer["Failed to copy text."]"></div>
+@section scripts {
+    <script src="~/node_modules/codemirror/lib/codemirror.js"></script>
+    <script src="~/node_modules/codemirror/mode/markdown/markdown.js"></script>
+    <script src="~/node_modules/codemirror/mode/xml/xml.js"></script>
+    <script src="~/node_modules/codemirror/addon/edit/closebrackets.js"></script>
+    <script src="~/node_modules/codemirror/addon/edit/matchbrackets.js"></script>
+    <script src="~/scripts/markdown-editor.js"></script>
 }
 ```
 
+
 !!! note "Aiursoft Template-specific script insertion method"
 
-    Similarly, `@section scripts` is a predefined section in the template file used to insert page-specific scripts. You can add any JavaScript code you need here. It will appear at the bottom of the page. In addition to inline scripts, you can also use `<script>` tags to reference external script files.
+    Similarly, `@section scripts` is a predefined section in the template file used to insert page-specific scripts. Reference page-specific JavaScript files here. It will appear at the bottom of the page. Reference separate JavaScript files from this section, and pass localized text through HTML attributes.
 
 > In the code above, we use the trick `@(theme)` to dynamically set the CodeMirror theme to match the user's theme preference. This is a Razor feature that executes on the server side, inserting the value of the C# variable into the generated HTML before sending it to the client for execution. Refer to the "server-side rendering" technique mentioned above.
 
@@ -593,9 +602,9 @@ With this, we've achieved features such as jQuery Validation, CodeMirror initial
 Now, you can save all changes, recompile, and run the project:
 
 ```bash
-# cd ./src/MyOrg.MarkToHtml/
-dotnet build
-dotnet run
+# Working directory: repository root
+dotnet build ./MyOrg.MarkToHtml.sln
+dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
 ```
 
 Normally, you can access `http://localhost:5000` in your browser and see a beautiful page that allows you to input markdown and preview the generated HTML. You can also try clicking the "Convert to HTML" button to check whether the generated HTML is correct. You can even copy the generated HTML or print a preview.

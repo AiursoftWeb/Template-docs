@@ -16,43 +16,9 @@ Here, the relationship between `User` and `Role` is many-to-many, and the relati
 
 Now, let's examine this core code. Open the file `./src/MyOrg.MarkToHtml/ProgramExtends.cs` and locate the `SeedAsync` method:
 
-```csharp title="ProgramExtensions.cs 无需要修改"
-var role = await roleManager.FindByNameAsync("Administrators");
-if (role == null)
-{
-    role = new IdentityRole("Administrators");
-    await roleManager.CreateAsync(role);
-}
+The generated initialization seeds administrator permissions only for a new, empty application. Keep it unchanged; grant later permissions through the existing role editor as described below.
 
-var existingClaims = await roleManager.GetClaimsAsync(role);
-var existingClaimValues = existingClaims
-    .Where(c => c.Type == AppPermissions.Type)
-    .Select(c => c.Value)
-    .ToHashSet();
-
-foreach (var permission in AppPermissions.GetAllPermissions())
-{
-    if (!existingClaimValues.Contains(permission.Key))
-    {
-        var claim = new Claim(AppPermissions.Type, permission.Key);
-        await roleManager.AddClaimAsync(role, claim);
-    }
-}
-
-if (!await db.Users.AnyAsync(u => u.UserName == "admin"))
-{
-    var user = new User
-    {
-        UserName = "admin",
-        DisplayName = "Super Administrator",
-        Email = "admin@default.com",
-    };
-    _ = await userManager.CreateAsync(user, "Admin@123456!");
-    await userManager.AddToRoleAsync(user, "Administrators");
-}
-```
-
-The above code will execute when the application runs for the first time. It ensures the existence of the `Administrators` role and assigns all permissions to it at startup. It also ensures that a user with the username `admin` exists and is added to the `Administrators` role.
+On the first initialization of an empty database, the generated startup code creates the administrator role and account. It does not restore revoked permissions on every restart.
 
 !!! info "The `Administrators` role has no special significance"
 
@@ -60,7 +26,7 @@ The above code will execute when the application runs for the first time. It ens
 
     There should be no business logic that requires a user to belong to the `Administrators` role in order to perform certain actions. The permission system is entirely controlled by `Claim` permissions, not by `Role`.
 
-Unlike `User` and `Role`, `Claim` is not stored directly in the database, but rather defined in code. You can find all permission definitions in the file `./src/MyOrg.MarkToHtml/Authorization/AppPermissions.cs`.
+Permission definitions live in code; assignments to roles are persisted as claims in AspNetRoleClaims. You can find all permission definitions in the file `./src/MyOrg.MarkToHtml/Authorization/AppPermissions.cs`.
 
 We can also modify the above file to add new permissions.
 
@@ -78,54 +44,23 @@ First, we need to determine which permissions we require. In this example, we wi
 
 !!! tip "Do basic features need permission design?"
 
-    You might wonder whether basic features (e.g., creating, editing, deleting one's own documents) also need permission design. In our case, we allow all users (even anonymous users) to create documents, so use cases like these do not require permissions.
+    You might wonder whether basic features (e.g., creating, editing, deleting one's own documents) also need permission design. In this example, anonymous users may convert Markdown, while signed-in users may save and manage their own documents. These actions use authentication and owner checks rather than document-administration permissions.
 
 Modify the file `./src/MyOrg.MarkToHtml/Authorization/AppPermissionNames.cs` to add the new permissions:
 
-```csharp title="AppPermissionNames.cs 新增权限"
+```csharp
 // Document Management
 public const string CanReadAllDocuments = nameof(CanReadAllDocuments);
 public const string CanDeleteAnyDocument = nameof(CanDeleteAnyDocument);
 public const string CanEditAnyDocument = nameof(CanEditAnyDocument);
 ```
 
-After modification, this file should look like this:
+Keep every existing permission constant. Add only the three document permissions above; replacing the class would remove permissions used by global settings, background jobs and permission management.
 
-```csharp title="AppPermissionNames.cs 完整代码"
-namespace MyOrg.MarkToHtml.Authorization;
-
-/// <summary>
-/// Defines all permission keys as constants. This is the single source of truth.
-/// </summary>
-public static class AppPermissionNames
-{
-    // User Management
-    public const string CanReadUsers = nameof(CanReadUsers);
-    public const string CanDeleteUsers = nameof(CanDeleteUsers);
-    public const string CanAddUsers = nameof(CanAddUsers);
-    public const string CanEditUsers = nameof(CanEditUsers);
-    public const string CanAssignRoleToUser = nameof(CanAssignRoleToUser);
-
-    // Role Management
-    public const string CanReadRoles = nameof(CanReadRoles);
-    public const string CanDeleteRoles = nameof(CanDeleteRoles);
-    public const string CanAddRoles = nameof(CanAddRoles);
-    public const string CanEditRoles = nameof(CanEditRoles);
-
-    // System Management
-    public const string CanViewSystemContext = nameof(CanViewSystemContext);
-    public const string CanRebootThisApp = nameof(CanRebootThisApp);
-
-    // Document Management
-    public const string CanReadAllDocuments = nameof(CanReadAllDocuments);
-    public const string CanDeleteAnyDocument = nameof(CanDeleteAnyDocument);
-    public const string CanEditAnyDocument = nameof(CanEditAnyDocument);
-}
-```
 
 Next, modify the file `./src/MyOrg.MarkToHtml/Authorization/AppPermissions.cs` and add the new permission to the permission list:
 
-```csharp title="AppPermissions.cs 新增三个权限"
+```csharp
 new(AppPermissionNames.CanReadAllDocuments,
     localizer["Read All Documents"],
     localizer["Allows viewing all documents in the system, regardless of ownership."]),
@@ -618,7 +553,7 @@ Similarly, based on this technique, we can also add similar permission checks to
 @using Aiursoft.WebTools
 @using Microsoft.AspNetCore.Authorization
 @using MyOrg.MarkToHtml.Authorization
-@using MyOrg.MarkToHtml.Services
+@using MyOrg.MarkToHtml.Services.FileStorage
 @model MyOrg.MarkToHtml.Models.AdminViewModels.UserDocumentsViewModel
 @inject IViewLocalizer Localizer
 @inject IAuthorizationService AuthorizationService

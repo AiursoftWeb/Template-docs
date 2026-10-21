@@ -1,56 +1,106 @@
-# Aiursoft Template Tutorial - Step 12 - Deploy the Application to a Real Server
+# Step 12 - Build and Deploy the Application
 
-### 
+First verify the application in a persistent local Docker container. Then use the same image and persistent-data layout on the target server. Publishing a new Aiursoft company business additionally follows the company's reviewed Box, identity, employee-permission and business-registration process; this standalone example does not replace it.
 
-After deploying with OIDC, users logging in for the first time who are not in the system-created role `Administrators` will have no permissions. We need to assign some permissions to users so they can use the system properly.
+## 12.1 Verify the frontend and build the image
 
-Suppose in the target organization, we want all employees to be the highest-level administrators of this system, and employees come from the OIDC `employees` role. We need to grant all permissions of the `employees` role to the `employees` role itself.
+From the repository root:
 
-In this case, you can use the following SQL statement to accomplish this task:
+```bash
+npm --prefix ./src/MyOrg.MarkToHtml/wwwroot install
+npm --prefix ./src/MyOrg.MarkToHtml/wwwroot run build
+test -f ./src/MyOrg.MarkToHtml/wwwroot/node_modules/codemirror/lib/codemirror.js
+dotnet build ./MyOrg.MarkToHtml.sln
+sudo docker build -t myorg/marktohtml:local .
+```
+
+The generated Dockerfile has already been renamed by Voyager. Preserve its multi-stage build, frontend pruning, initialization and health check. Building the image requires access to the registries used by that Dockerfile. Review build errors rather than changing application image sources to hide a registry problem.
+
+## 12.2 Start with persistent SQLite and file storage
+
+Create a dedicated data volume. It holds the SQLite database, file storage, application settings and data-protection keys used by the generated image:
+
+```bash
+sudo docker volume create marktohtml-data
+sudo docker run -d --name marktohtml \
+  -p 127.0.0.1:5000:5000 \
+  -v marktohtml-data:/data \
+  myorg/marktohtml:local
+```
+
+Keep the binding on loopback until the initial administrator account and external identity configuration are ready. Visit `http://localhost:5000`, sign in with the development administrator, and change its default password through account management before exposing a local-login deployment. Create and edit a note, upload an image, and verify `/health` returns `Healthy`.
+
+```bash
+curl --fail http://localhost:5000/health
+sudo docker inspect --format '{{.State.Health.Status}}' marktohtml
+sudo docker restart marktohtml
+```
+
+After restart, sign in again and confirm the note and uploaded image remain available. Inspect application logs for startup or migration failures; a running container alone is insufficient.
+
+To replace the container with a rebuilt image, stop and remove only the container, then repeat `docker run` with the same volume. Do not remove the data volume:
+
+```bash
+sudo docker stop marktohtml
+sudo docker rm marktohtml
+# Rebuild the image and repeat the docker run command above.
+```
+
+Back up the persistent data before changing application versions or database providers. With SQLite, use a consistent SQLite backup or stop the application while copying its data; do not copy only a live database file while ignoring its journal. For MySQL, use a separate database volume and database backup in addition to this application's files and keys. Never point a new provider at an unrelated existing database.
+
+## 12.3 Configure the public entry point and OIDC
+
+Put the container behind the target server's existing HTTPS reverse proxy. Proxy the intended hostname to the application, preserve the normal forwarded headers, and keep the application volume. For a remote server, an SSH tunnel to its loopback port is sufficient for the initial private smoke test. Configure DNS and a valid TLS certificate before enabling an external identity callback.
+
+Register an independent confidential client with your OIDC provider. Use a strict callback such as `https://notes.example.com/signin-oidc`, an appropriate issuer/authority, and the `openid`, `profile` and `email` scopes. Configure the provider to return the username, immutable subject, display name, email and groups expected by the application. Restrict login admission at the identity provider if this is an internal business.
+
+Keep endpoint and feature choices in reviewed deployment configuration. Store the client secret in the server's protected secret configuration, not Git. For a standalone Docker deployment, a mode-0600 private env file can contain `AppSettings__OIDC__ClientId` and `AppSettings__OIDC__ClientSecret`. Replace the example public values below and recreate the container with its existing data volume:
+
+```bash
+sudo docker run -d --name marktohtml \
+  -p 127.0.0.1:5000:5000 \
+  -v marktohtml-data:/data \
+  --env-file /etc/marktohtml/oidc.env \
+  -e AppSettings__AuthProvider=OIDC \
+  -e AppSettings__OIDC__Authority=https://identity.example.com/application/o/notes/ \
+  -e AppSettings__OIDC__RolePropertyName=groups \
+  -e AppSettings__AllowAnonymousUsage=false \
+  myorg/marktohtml:local
+```
+
+Stop/remove the previous container first, as in 12.2. Set `AllowAnonymousUsage` according to your intended audience; OIDC login does not by itself make anonymous note conversion private. The template defaults use `preferred_username`, `sub`, `name` and `email` for the other claims; override their OIDC configuration properties if your provider uses different names. No client credential is supplied by this documentation.
+
+Verify a real login, callback and group synchronization. A 302 to the provider proves only that authentication started. Signing into the application does not automatically grant background-job, settings or document-administration permissions.
+
+## 12.4 Assign business permissions
+
+Choose the actual management group, such as `leadership`, and grant only the intended capabilities through the application's role-management pages while an authorized administrator still has access. The group role normally appears after an admitted member first signs in. Confirm the role exists before granting anything. Ordinary users can save and manage their own notes without document-administration permissions.
+
+For an explicitly authorized MySQL administration procedure, the following copies existing Permission claims to an already-created management role. It deliberately stops before COMMIT so you can inspect the role ID and counts. If the role lookup is NULL or the result is wrong, issue ROLLBACK; never delete the existing administrator first.
 
 ```sql
--- 步骤 1: 查询名为 'employees' 的角色的 ID，并将其存储在一个变量中
-SET @roleId = (SELECT Id FROM AspNetRoles WHERE Name = 'employees');
+START TRANSACTION;
+SET @roleId = (SELECT Id FROM AspNetRoles WHERE NormalizedName = 'LEADERSHIP');
+SELECT @roleId AS ManagementRoleId;
 
--- 步骤 2: 为 'employees' 角色插入所有可能的权限
--- 这段代码会从 AspNetRoleClaims 表中复制所有不重复的 ClaimType 和 ClaimValue 组合
--- 并使用 WHERE NOT EXISTS 子句来确保不会重复添加已经存在的权限
 INSERT INTO AspNetRoleClaims (RoleId, ClaimType, ClaimValue)
-SELECT
-    @roleId,
-    c.ClaimType,
-    c.ClaimValue
-FROM
-    (SELECT DISTINCT ClaimType, ClaimValue FROM AspNetRoleClaims) AS c
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM AspNetRoleClaims
-    WHERE RoleId = @roleId
-      AND ClaimType = c.ClaimType
-      AND ClaimValue = c.ClaimValue
+SELECT @roleId, 'Permission', c.ClaimValue
+FROM (SELECT DISTINCT ClaimValue FROM AspNetRoleClaims WHERE ClaimType = 'Permission') c
+WHERE @roleId IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM AspNetRoleClaims existing
+    WHERE existing.RoleId = @roleId
+      AND existing.ClaimType = 'Permission'
+      AND existing.ClaimValue = c.ClaimValue
 );
+SELECT COUNT(*) AS GrantedPermissions
+FROM AspNetRoleClaims WHERE RoleId = @roleId AND ClaimType = 'Permission';
+-- COMMIT only after verifying the intended role and permission set; otherwise ROLLBACK.
 ```
 
-After executing the SQL statement above, the `employees` role will have all permissions. This way, all logged-in employees can use all features of the system.
+This is MySQL-specific, not a command for the SQLite example. Prefer the normal management UI; direct database writes require authorization, a backup, and awareness of application caches. Retaining an existing administrator until the replacement role is proven prevents lockout. Already signed-in users must sign out and back in to refresh their permission claims. Do not delete roles or accounts as an automatic part of deploying an app.
 
-!!! note "Users who are already logged in"
+## 12.5 Final checks
 
-    If a user has already logged in once, they need to log in again to receive the new permissions.
+Verify anonymous behavior matches the chosen setting; ordinary users cannot edit another user's notes or use document-administration actions; the intended management group can perform its assigned actions; upload and recycle-bin flows work; and stored notes/images survive container replacement. Check background jobs and logs, then establish the normal backup and availability checks for the deployment. For company hosting, complete the existing business-registration and employee-trial steps before inviting use.
 
-You might also need to delete the `Administrators` role. Of course, before deleting it, we need to first revoke all its permissions. You can use the following SQL statement to accomplish this task:
-
-```sql
--- 步骤 1: 查询名为 'Administrators' 的角色的 ID，并将其存储在一个变量中
-SET @adminRoleId = (SELECT Id FROM AspNetRoles WHERE Name = 'Administrators');
-
--- 步骤 2: 删除 'Administrators' 角色的所有权限
-DELETE FROM AspNetRoleClaims
-WHERE RoleId = @adminRoleId;
--- 步骤 3: 删除 'Administrators' 角色本身
-DELETE FROM AspNetRoles
-WHERE Id = @adminRoleId;
-```
-
-After executing the above SQL statement, the `Administrators` role has been removed.
-
-With this, we have completed the task of assigning permissions to the OIDC users, and the specific groups within our organization can now securely begin managing and using this system.
+Continue with the optional [after-class exercises](./step13.md).
