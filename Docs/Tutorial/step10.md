@@ -2,16 +2,31 @@
 
 Continue with the MarkdownDocument entity from Step 4. Deleted documents should disappear from normal queries, remain restorable by their owner for 30 days, and then be removed by the existing background-job system.
 
+
+Stop the server with **Ctrl+C** before editing.
+
+```bash
+cd ~/Source/MyOrg.MarkToHtml
+```
+
+This returns to the repository root. All file paths below start there.
+
+**Our goal:** restore your own deleted note and let the existing job system remove expired notes.
+
 ## 10.1 Extend the existing entity and mapping
 
-Add these properties inside MarkdownDocument:
+Open `src/MyOrg.MarkToHtml.Entities/MarkdownDocument.cs`.
+Insert these two properties inside its class, before the existing Id property:
 
 ```csharp
 public bool IsDeleted { get; set; }
 public DateTime? DateDeleted { get; set; }
 ```
 
-In the existing TemplateDbContext, add this override. If an override already exists, append the entity configuration after its base call instead of replacing the method:
+Open `src/MyOrg.MarkToHtml.Entities/MarkToHtmlDbContext.cs`.
+Inside TemplateDbContext, insert this method before the final class-closing brace.
+Keep GlobalSettings, MarkdownDocuments, MigrateAsync, and CanConnectAsync.
+ If an override already exists, append the entity configuration after its base call instead of replacing the method:
 
 ```csharp
 protected override void OnModelCreating(ModelBuilder builder)
@@ -21,7 +36,63 @@ protected override void OnModelCreating(ModelBuilder builder)
 }
 ```
 
-Generate AddMarkdownDocumentSoftDelete migrations for both SQLite and MySQL using the commands from Step 4, changing the migration name. The MySQL connection must be configured before generating its migration. Return to SQLite for local development afterwards. Restart the app to apply its selected provider's migration.
+### Make a migration for each provider
+
+We changed the stored model, so the database needs two new columns.
+Do not reuse the old migration name.
+
+First confirm the web appsettings.json is set to `Sqlite`, as at the end of Step 4.
+
+```bash
+cd src/MyOrg.MarkToHtml.Sqlite
+```
+
+This selects the SQLite migration project from the repository root.
+
+```bash
+dotnet ef migrations add AddMarkdownDocumentSoftDelete --context SqliteContext -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```
+
+This generates the SQLite schema change. `--context` chooses the provider.
+`-s` points to the web startup project that supplies configuration.
+**Expected:** `Done`, with a migration adding IsDeleted and DateDeleted.
+
+```bash
+cd ../..
+```
+
+This returns to the repository root.
+
+Now repeat Step 4's MySQL setup: start the disposable `tutorial-mysql` container,
+wait until its `SELECT 1` check succeeds, and switch the web ConnectionStrings section to MySql.
+
+Use the same tutorial database and password as in Step 4.
+
+If you removed that container earlier, create it again; do not run two containers with the same name.
+
+```bash
+cd src/MyOrg.MarkToHtml.MySql
+```
+
+This selects the MySQL migration project.
+
+```bash
+dotnet ef migrations add AddMarkdownDocumentSoftDelete --context MySqlContext -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```
+
+This generates the corresponding MySQL migration.
+**Expected:** `Done`, again adding the two soft-delete columns.
+
+```bash
+cd ../..
+```
+
+This returns to the repository root.
+Switch the web appsettings.json back to SQLite **before** continuing.
+You may then stop/remove only the disposable MySQL container, as in Step 4.
+
+Review both migrations. They should add columns, not drop existing note or identity tables.
+Starting the app at the checkpoint below applies the selected provider's migration.
 
 ## 10.2 Change the existing delete actions
 
@@ -32,7 +103,13 @@ document.IsDeleted = true;
 document.DateDeleted = DateTime.UtcNow;
 ```
 
-Keep its existing owner check, antiforgery validation, SaveChangesAsync and redirect. Make the same replacement in AdminController.DeleteDocumentConfirmed, retaining its CanDeleteAnyDocument policy. Normal history, edit and admin queries now hide deleted documents automatically. In the existing Home/Delete and Admin/DeleteDocument confirmation views, replace any text claiming the action is irreversible or permanent with a localized message such as `This note will move to the recycle bin for 30 days.` Keep the existing form actions and antiforgery handling.
+Keep its existing owner check, antiforgery validation, SaveChangesAsync and redirect.
+
+Make the same replacement in AdminController.DeleteDocumentConfirmed, retaining its CanDeleteAnyDocument policy.
+
+Normal history, edit and admin queries now hide deleted documents automatically.
+
+In the existing Home/Delete and Admin/DeleteDocument confirmation views, replace any text claiming the action is irreversible or permanent with a localized message such as `This note will move to the recycle bin for 30 days.` Keep the existing form actions and antiforgery handling.
 
 ## 10.3 Add an owner-scoped recycle bin
 
@@ -158,10 +235,54 @@ services.RegisterScheduledTask(
 
 Keep the existing Aiursoft.Canon.BackgroundJobs and Aiursoft.Canon.ScheduledTasks imports, and import MyOrg.MarkToHtml.Services.BackgroundJobs. Do not add a second scheduler or modify the existing jobs.
 
-## 10.5 Verify
+## Checkpoint 10A - Restore a deleted note
 
-Create and delete a note. It should disappear from History and Edit, appear in `/RecycleBin`, and return to History after Restore. A second user must not see or restore it. Delete a fresh note and run **Recycle bin cleanup** from `/Jobs`; the fresh note must remain restorable. In an isolated test database, give a deleted test note a DateDeleted older than 30 days and trigger cleanup again: that note must be physically removed while fresh deleted and active notes remain. Job execution is asynchronous; inspect the Jobs result rather than treating the trigger redirect as completion.
+Save the files and make sure appsettings.json is back on SQLite.
+
+```bash
+dotnet build ./MyOrg.MarkToHtml.sln
+```
+
+This checks the entity, context, controllers, views, and job registration together.
+**Expected:** a successful build.
+
+```bash
+dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```
+
+This applies the SQLite migration and starts the app.
+**Expected:** startup without migration errors.
+
+Create and delete a note. It should disappear from History and Edit, appear in `/RecycleBin`, and return to History after Restore. A second user must not see or restore it.
+
+## Checkpoint 10B - The cleanup job leaves recent notes alone
+
+Use the management account to open `http://localhost:5000/Jobs`.
+
+Find **Recycle bin cleanup** and its manual trigger.
+
+Delete a fresh note and run that job; the fresh note must remain restorable.
+
+To verify the expiry branch, stop the app with **Ctrl+C**.
+
+In a SQLite browser, open only this project's disposable `app.db`.
+
+Find a test note that is already marked IsDeleted and set its DateDeleted to `2000-01-01 00:00:00`.
+
+Save the database change, close the database editor, and start the app again using the command above.
+
+Trigger cleanup again.
+
+Expect the old deleted note to disappear from the recycle bin and database.
+
+Fresh deleted notes and active notes must remain.
+
+Do not do this experiment in a shared or production database.
+
+Job execution is asynchronous; inspect the Jobs result rather than treating the trigger redirect as completion.
 
 Uploaded images are not deleted by this note cleanup: multiple notes may reference the same image. File retention is a separate business decision.
+
+Press **Ctrl+C** when you are done checking.
 
 Continue with [Step 11](./step11.md).

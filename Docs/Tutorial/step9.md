@@ -1,6 +1,29 @@
 # Step 9 - Upload an Image for a Note
 
-Use the existing signed-upload pipeline. This example gives each signed-in user a separate folder, previews a public image, and provides Markdown to paste into a note. The note stores the generated image URL as part of its Markdown content; the uploader's form stores the logical path, not a filesystem path. These Workspace images are public even when the note is private; use the [Vault guidance](../Features/SaveFile.md) for confidential attachments.
+Use the existing signed-upload pipeline.
+
+This example gives each signed-in user a separate folder, previews a public image, and provides Markdown to paste into a note.
+
+The note stores the generated image URL as part of its Markdown content; the uploader's form stores the logical path, not a filesystem path.
+
+These Workspace images are public even when the note is private; use the [Vault guidance](../Features/SaveFile.md) for confidential attachments.
+
+
+Stop the server with **Ctrl+C** before editing.
+
+```bash
+cd ~/Source/MyOrg.MarkToHtml
+```
+
+This returns to the repository root. All file paths below start there.
+
+**Our goal:** upload one picture and put its Markdown into a saved note.
+
+We need three files. Let's give each a small job:
+
+- The model receives the uploaded image's logical path.
+- The controller checks that the path belongs to this user.
+- The view shows the existing upload widget and the resulting Markdown.
 
 ## 9.1 Add the upload model and controller
 
@@ -68,7 +91,11 @@ public class UploadsController(UserManager<User> users, StorageService storage,
 }
 ```
 
-The common FilesController validates the signed grant, extension, size and content. The business controller independently checks that the returned path belongs to the signed-in user's folder. A valid upload token from another feature is not proof of ownership here.
+The common FilesController validates the signed grant, extension, size and content.
+
+The business controller independently checks that the returned path belongs to the signed-in user's folder.
+
+A valid upload token from another feature is not proof of ownership here.
 
 ## 9.2 Add the view
 
@@ -106,8 +133,36 @@ Create `src/MyOrg.MarkToHtml/Views/Uploads/Index.cshtml`:
 
 The component uses the existing uploader script and Dropify. Keep the generated Dropify entry in package.json's keep map. No extra upload endpoint or direct IFormFile write is needed.
 
-## 9.3 Verify
+## Checkpoint 9 - Put a picture in a note
 
-From the repository root, build and run the project as in Step 1. Sign in, open `/Uploads`, upload a PNG or JPEG smaller than 5 MiB, then select **Use image**. Copy the generated Markdown into a note and save it. Reopen the note and verify the image loads. Try a disallowed extension and another user's logical path; both must be rejected. Signing out must prevent opening `/Uploads`.
+Save all three new files.
+
+```bash
+dotnet build ./MyOrg.MarkToHtml.sln
+```
+
+This checks the model, controller, and Razor view together.
+**Expected:** a successful build.
+
+```bash
+dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```
+
+This starts the updated app. Sign in, then type `http://localhost:5000/Uploads` in the browser address bar.
+The new page is not automatically added to the menu.
+
+Take these actions one at a time:
+ 1. Select a small PNG or JPEG. Wait for the upload to finish.
+2. Click **Use image**. Expect a preview and a box containing a Markdown image line.
+3. Copy that whole Markdown line into a note, then save the note.
+4. Reopen the note and switch to Preview. Expect the picture to load.
+5. Try a `.txt` file in the widget. Expect it to be rejected.
+6. Sign out and open the Uploads URL again. Expect the login page.
+
+A picture in Workspace is publicly downloadable if someone has its URL.
+A private note does not make its picture private.
+Use the Vault guidance linked above when that is not acceptable.
+
+Press **Ctrl+C** after checking. Keep the note for the next chapter.
 
 Continue with [Step 10](./step10.md).

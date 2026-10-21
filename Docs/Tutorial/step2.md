@@ -1,176 +1,230 @@
-# Aiursoft Template Tutorial - Step 2 - Add and Debug Third-Party Libraries
+# Step 2 - Try the Libraries Before Building the Page
 
-![rider-verify](./images/rider-verify.png)
+![Debugging a library in the editor](./images/rider-verify.png)
 
-## Step 2.1 Add Third-Party Library
+**Our goal:** convert a tiny Markdown example, clean unsafe HTML, and install CodeMirror.
+We will connect these pieces to a page in Step 3.
 
-Obviously, our original task is to create an application that converts markdown to HTML. For this purpose, we need a library capable of converting markdown to HTML.
-
-In this tutorial, we choose [Markdig](https://github.com/xoofx/markdig). It is a powerful and easy-to-use markdown parser.
-
-To install Markdig, we need to use the NuGet package manager. You can use the following command to install it:
+First, stop the app with **Ctrl+C** if it is still running.
 
 ```bash
-cd ./src/MyOrg.MarkToHtml/
+cd ~/Source/MyOrg.MarkToHtml
+```
+
+This returns to the repository root. We start each chapter here.
+
+## 2.1 Add the two C# libraries
+
+```bash
+cd src/MyOrg.MarkToHtml
+```
+
+This moves into the web project, where `MyOrg.MarkToHtml.csproj` lives.
+
+```bash
 dotnet add MyOrg.MarkToHtml.csproj package Markdig
 ```
 
-Next, we'll install an additional library that prevents the generated HTML from being vulnerable to XSS attacks, called [HtmlSanitizer](https://github.com/mganss/HtmlSanitizer). You can install it using the following command:
+[Markdig](https://github.com/xoofx/markdig) converts Markdown into HTML.
+This command adds its package reference to our web project.
+
+**Expected:** a successful restore and a `PackageReference` for Markdig in the csproj.
 
 ```bash
-# cd ./src/MyOrg.MarkToHtml/
 dotnet add MyOrg.MarkToHtml.csproj package HtmlSanitizer
 ```
 
-You will notice that after the above command is executed, references to Markdig and HtmlSanitizer have been added to the `MyOrg.MarkToHtml.csproj` file, which might look like this:
+[HtmlSanitizer](https://github.com/mganss/HtmlSanitizer) removes unsafe HTML such as scripts.
+The conversion library and sanitizer have different jobs; we need both.
 
-```xml title="MyOrg.MarkToHtml.csproj"
-<ItemGroup>
-    <PackageReference Include="HtmlSanitizer" Version="9.0.886" />
-    <PackageReference Include="Markdig" Version="0.42.0" />
-</ItemGroup>
-```
+**Expected:** another successful restore and a reference to HtmlSanitizer.
+The exact current package versions may differ from screenshots.
 
-## Step 2.2 Test the functionality of third-party libraries (optional)
+## 2.2 Save the original entry point
 
-!!! tip "This step is entirely optional"
-
-    This step is entirely optional and is intended to demonstrate how to debug third-party libraries. If you trust that Markdig will work properly, you can skip this step.
-
-Before changing `Program.cs`, save its original contents:
+We are about to use `Program.cs` as a tiny scratch program.
+This is temporary. Let's save the real startup code first.
 
 ```bash
-# Working directory: src/MyOrg.MarkToHtml
 cp Program.cs Program.cs.before-library-test
 ```
 
-Next, we need to first test whether Markdig and HtmlSanitizer can function correctly. To do this, directly modify the `./src/MyOrg.MarkToHtml/Program.cs` file, temporarily comment out the original content in the `Main` method, and temporarily add the following code for testing Markdig:
+`cp` copies the file. Our backup has no `.cs` extension, so it will not be compiled.
+**Expected:** both files are visible in the web-project folder.
+
+Do not skip the backup. We need it to restore logging, database startup, and the web server.
+
+## 2.3 Try Markdig
+
+Open `src/MyOrg.MarkToHtml/Program.cs` in the editor.
+Temporarily replace the **whole file** with this small program:
 
 ```csharp
-using Aiursoft.DbTools;
-using MyOrg.MarkToHtml.Entities;
-using static Aiursoft.WebTools.Extends;
 using Markdig;
 
 namespace MyOrg.MarkToHtml;
 
 public abstract class Program
 {
-    public static async Task Main(string[] args)
+    public static void Main(string[] args)
     {
-        var testMarkDown = """
-                           # Hello World
-
-                           This is a sample markdown text.
-
-                           > This is a blockquote.
-                           """;
+        var markdown = "# Hello World\n\nThis is my first conversion.";
         var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
-        var html = Markdown.ToHtml(testMarkDown, pipeline);
+        var html = Markdown.ToHtml(markdown, pipeline);
         Console.WriteLine(html);
-
-        // var app = await AppAsync<Startup>(args);
-        // await app.UpdateDbAsync<TemplateDbContext>();
-        // await app.SeedAsync();
-        // await app.CopyAvatarFileAsync();
-        // await app.RunAsync();
     }
 }
 ```
 
-Next, we can run the project again to test whether Markdig works properly:
+Save the file. In the terminal, we are still in `src/MyOrg.MarkToHtml`.
 
 ```bash
-# cd ./src/MyOrg.MarkToHtml/
 dotnet run --project MyOrg.MarkToHtml.csproj
 ```
 
-You might see output similar to the following:
+This runs our temporary program.
+**Expected:** an `<h1>` and a `<p>` printed in the terminal, then the prompt returns.
 
-```html
-<h1 id="hello-world">Hello World</h1>
-<p>This is a sample markdown text.</p>
-<blockquote>
-<p>This is a blockquote.</p>
-</blockquote>
-```
+No website opens in this exercise. We temporarily replaced the web-server startup.
 
-This proves that Markdig can successfully convert markdown to HTML. Next, we continue testing HtmlSanitizer.
+## Checkpoint 2A - Markdown becomes HTML
 
-We can modify the test code in the `Program.cs` file to include the use of HtmlSanitizer:
+Look for `Hello World` inside an HTML heading.
+That is the result from Markdig. Good; the first piece works.
+
+## 2.4 Try the sanitizer
+
+Replace the **whole temporary Program.cs** again:
 
 ```csharp
-using Aiursoft.DbTools;
 using Ganss.Xss;
-using MyOrg.MarkToHtml.Entities;
-using static Aiursoft.WebTools.Extends;
 
 namespace MyOrg.MarkToHtml;
 
 public abstract class Program
 {
-    public static async Task Main(string[] args)
+    public static void Main(string[] args)
     {
         var sanitizer = new HtmlSanitizer();
-        var html = @"<script>alert('xss')</script><div onload=""alert('xss')"""
-                   + @"style=""background-color: rgba(0, 0, 0, 1)"">Test<img src=""test.png"""
-                   + @"style=""background-image: url(javascript:alert('xss')); margin: 10px""></div>";
-        var sanitized = sanitizer.Sanitize(html, "https://www.example.com");
-        Console.WriteLine(sanitized);
-
-        // var app = await AppAsync<Startup>(args);
-        // await app.UpdateDbAsync<TemplateDbContext>();
-        // await app.SeedAsync();
-        // await app.CopyAvatarFileAsync();
-        // await app.RunAsync();
+        var unsafeHtml = "<h1>Hello</h1><script>alert('xss')</script>";
+        Console.WriteLine(sanitizer.Sanitize(unsafeHtml));
     }
 }
 ```
 
-This time, the expected output will be:
-
-```html
-<div style="background-color: rgba(0, 0, 0, 1)">Test<img src="https://www.example.com/test.png" style="margin: 10px"></div>
-```
-
-It can be noticed that all potential XSS attack vectors have been removed. This demonstrates that HtmlSanitizer successfully cleans HTML.
-
-## Step 2.3 Restore the Program.cs file
-
-Restore the saved entry point, including its database, logging and initialization calls:
+Save the file.
 
 ```bash
-# Working directory: src/MyOrg.MarkToHtml
+dotnet run --project MyOrg.MarkToHtml.csproj
+```
+
+This runs the sanitizer example.
+**Expected:** `<h1>Hello</h1>`, with no `<script>` or `alert` left in the output.
+
+## Checkpoint 2B - Unsafe script content is removed
+
+The heading stays. The script goes away.
+We will use the same order in the real service: convert first, sanitize second.
+
+## 2.5 Put the real startup code back
+
+```bash
 mv Program.cs.before-library-test Program.cs
 ```
 
-Do not replace the entry point with a shortened version: the generated startup sequence can contain additional initialization required by the template.
+`mv` moves the backup back to its original name, replacing the scratch program.
+The application can now start its web server again.
 
-## Step 2.4 Install the frontend code editor
+If you retried this chapter and the backup is missing, stop here.
+Do not run this command twice or invent a shortened startup file.
+Recover the original generated Program.cs from Git before continuing.
 
-Considering we need to provide users with the ability to edit Markdown and preview HTML on the frontend page, we need a powerful frontend code editor. We choose [CodeMirror 5](https://codemirror.net/) as our frontend code editor.
-
-To install CodeMirror 5, we need to use the npm package manager. You can use the following command to install it:
+## 2.6 Install the browser editor
 
 ```bash
-cd wwwroot/ # From src/MyOrg.MarkToHtml after restoring Program.cs
+cd wwwroot
+```
+
+This enters the frontend folder from the web-project folder.
+
+```bash
 npm install codemirror@5 --save
 ```
 
-The current frontend build removes packages that are not listed in `package.json`'s `keep` map. Add CodeMirror while preserving the existing dependencies, scripts and keep entries:
+This downloads CodeMirror 5 and records the dependency.
+`@5` matters: the page in the next chapter uses the CodeMirror 5 API.
 
-```bash
-# Still in src/MyOrg.MarkToHtml/wwwroot
-node --input-type=module -e 'import fs from "node:fs"; const p=JSON.parse(fs.readFileSync("package.json","utf8")); p.keep={...p.keep,codemirror:"."}; fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\n");'
-npm run build
-test -f node_modules/codemirror/lib/codemirror.js
-test -f node_modules/codemirror/lib/codemirror.css
-test -f node_modules/codemirror/mode/markdown/markdown.js
-cd ../../..  # Repository root
+Now open `src/MyOrg.MarkToHtml/wwwroot/package.json` in the editor.
+Find the existing `keep` object.
+Add `"codemirror": "."` after `dropify`, including the comma between entries.
+
+The **keep object only** should now look like this:
+
+```json
+"keep": {
+  "dropify": "dist",
+  "codemirror": "."
+}
 ```
 
-Keeping `codemirror: "."` includes the library, modes, addons and themes used in the next chapter. Review and commit both `package.json` and `package-lock.json`. Development success after `npm install` alone does not verify the Docker frontend build.
+Keep the surrounding `dependencies` and `scripts` sections.
+This small block is not a replacement for the whole package.json file.
 
-## Conclusion
+Why add this? The frontend build removes files it does not need.
+The dot tells it to keep CodeMirror's library, themes, modes, and addons.
+Without this entry, the editor could work locally and disappear from the Docker image.
 
-Congratulations on completing Step 2! You have now successfully added and tested the third-party libraries Markdig, HtmlSanitizer, and CodeMirror. By properly utilizing Nuget, npm, and GitHub, you can easily integrate the work of others into your project and quickly expand your project's functionality.
+```bash
+npm run build
+```
+
+This runs the template's normal frontend build, including its file pruning.
+**Expected:** the command finishes successfully.
+
+Let's check the three files we will need:
+
+```bash
+ls node_modules/codemirror/lib/codemirror.js
+```
+
+This checks that the editor's JavaScript survived. **Expected:** the file's path.
+
+```bash
+ls node_modules/codemirror/lib/codemirror.css
+```
+
+This checks its stylesheet. **Expected:** the file's path.
+
+```bash
+ls node_modules/codemirror/mode/markdown/markdown.js
+```
+
+This checks the Markdown mode. **Expected:** the file's path.
+If a check says `No such file`, revisit the keep object before continuing.
+
+```bash
+cd ../../..
+```
+
+This returns to the repository root.
+
+```bash
+dotnet build ./MyOrg.MarkToHtml.sln
+```
+
+This checks that the real application still compiles after restoring Program.cs.
+**Expected:** `Build succeeded.`
+
+## Checkpoint 2C - Ready to build a page
+
+Check these before moving on:
+
+- Both scratch programs produced the expected output.
+- Program.cs contains the original startup code again.
+- Both C# packages are referenced by the web project.
+- CodeMirror's JavaScript, CSS, and Markdown mode still exist after the frontend build.
+
+Keep the changes to **both** package.json and package-lock.json.
+The lock file records the resolved frontend dependencies.
+
+Well done. Now let's [put the conversion on a page](./step3.md).

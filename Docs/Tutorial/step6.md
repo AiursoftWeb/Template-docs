@@ -2,17 +2,33 @@
 
 ![admin-panel](./images/admin-panel.png)
 
-As a site administrator, you might want a dedicated admin dashboard to manage users and content. You might also want special permission settings, such as changing the owner of a document or granting higher privileges to certain users. In this step, we'll implement these features.
+As a site administrator, you might want a dedicated admin dashboard to manage users and content.
+
+You might also want special permission settings, such as changing the owner of a document or granting higher privileges to certain users.
+
+In this step, we'll implement these features.
 
 Therefore, in this section, we'll discuss the design of the permission system and implement a simple admin dashboard.
+
+
+**Before you edit:** stop the server with **Ctrl+C**.
+
+```bash
+cd ~/Source/MyOrg.MarkToHtml
+```
+
+This returns to the repository root. All `src/` paths below start here.
+
+**Our goal:** give a management role three document permissions, then try the admin pages.
 
 ## Step 6.1 Understand the Aiursoft Template Permission System (Optional)
 
 Before proceeding, we need to understand that the Aiursoft Template permission system is role-based. Each user can have multiple roles, and each role can have multiple claims.
 
-Here, the relationship between `User` and `Role` is many-to-many, and the relationship between `Role` and `Claim` is also many-to-many.
+Here, the relationship between `User` and `Role` is many-to-many, and each role stores its own claims. The same permission value may be assigned to more than one role.
 
-`User` and `Role` are stored in the database. When the application starts for the first time, it creates a default `Admin` role and a permission group named `Administrators`.
+`User` and `Role` are stored in the database. On the first initialization of an empty database, it creates the `admin` user and an `Administrators` role.
+The user and role are different records; there is no second special `Admin` role.
 
 Now, let's examine this core code. Open the file `./src/MyOrg.MarkToHtml/ProgramExtends.cs` and locate the `SeedAsync` method:
 
@@ -58,7 +74,13 @@ public const string CanEditAnyDocument = nameof(CanEditAnyDocument);
 Keep every existing permission constant. Add only the three document permissions above; replacing the class would remove permissions used by global settings, background jobs and permission management.
 
 
-Next, modify the file `./src/MyOrg.MarkToHtml/Authorization/AppPermissions.cs` and add the new permission to the permission list:
+Next, modify the file `./src/MyOrg.MarkToHtml/Authorization/AppPermissions.cs` and find `List<PermissionDescriptor> allPermission = [ ... ];`.
+
+Insert the three entries **inside that list**, before its closing `];`.
+
+Each entry ends with a comma.
+
+Keep all existing entries:
 
 ```csharp
 new(AppPermissionNames.CanReadAllDocuments,
@@ -90,7 +112,13 @@ Next, we need to assign the newly added permission to the `Administrators` role.
 
 We need to manually go to the `Roles` page, find the `Administrators` role, and then click the `Edit this Role` button.
 
-On the role editing page, locate the newly added permission, check it, and then click the `Save Changes` button to save the changes.
+Check the three new document permissions and click **Save Changes**.
+
+Then **sign out and sign in again**.
+Your existing login cookie contains the old permission claims; saving the role does not rewrite that cookie.
+
+If you still see a 403 page, check the role assignment and repeat the sign-out/sign-in step.
+Do not change SeedAsync to grant permissions on every startup.
 
 ## Step 6.4 Create an Admin Dashboard
 
@@ -493,7 +521,7 @@ View for displaying all documents `AllDocuments.cshtml`:
                             </td>
                             <td>
                                 <a asp-action="UserDocuments" asp-route-id="@doc.UserId">
-                                    @doc.User.DisplayName
+                                    @(doc.User?.DisplayName ?? doc.UserId)
                                 </a>
                             </td>
                             <td>
@@ -889,8 +917,8 @@ as well as the view `DeleteDocument.cshtml` for deleting documents. This is now 
                         <div class="row">
                             <strong class="col-sm-3">@Localizer["Owner"]</strong>
                             <div class="col-sm-9">
-                                @Model.Document.User.DisplayName
-                                <span class="text-muted">(@@@Model.Document.User.UserName)</span>
+                                @(Model.Document.User?.DisplayName ?? Model.Document.UserId)
+                                <span class="text-muted">(@@@(Model.Document.User?.UserName))</span>
                             </div>
                         </div>
                     </div>
@@ -929,10 +957,36 @@ After logging in, you should see a new "Administration" menu in the navigation b
 
 You will see a page displaying all documents. You can click on a user's name to view all documents belonging to that user. You can also click the "Edit" button to edit any document, or click the "Delete" button to delete a document.
 
-## Conclusion
 
-Congratulations! You have successfully added a powerful admin dashboard to your application, allowing administrators to view, edit, and delete documents from all users.
+## Checkpoint 6 - Permissions change what a user can do
 
-In this chapter, we learned the basics of RBAC permission management, created the necessary permissions and roles, and implemented a complete admin interface.
+Save the files in your editor first. Let's check this small piece before going on.
 
-With thoughtful permission design, we can effectively protect sensitive operations in the application while also providing administrators with powerful management tools.
+```bash
+dotnet build ./MyOrg.MarkToHtml.sln
+```
+
+This compiles the solution. **Expected:** `Build succeeded.` with no errors.
+If it fails, stop here and check the first error's file and line number.
+
+```bash
+dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```
+
+This starts the app with the changes you just made.
+Open the listening address in your browser.
+
+- Sign in with the management account after the role update.
+- Open **Documents** and view all documents.
+- Try editing and deleting a disposable note through the management pages.
+- Sign in as your second, ordinary account.
+- That account must be denied access to the same management URLs.
+- Its own **My Documents** page must still work.
+
+Do not give ordinary users all permissions just to make a test pass.
+Authentication, ownership, and management permissions are different checks.
+
+Finished checking? Press **Ctrl+C** and wait for the terminal prompt.
+You have a working stopping point now.
+
+Continue with [Step 7](./step7.md).

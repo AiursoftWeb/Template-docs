@@ -2,11 +2,24 @@
 
 ![history-page](./images/history-page.png)
 
-Next, we will continue expanding the previous example to allow users to save their markdown documents and later re-edit or even share them. To achieve this, we need to modify the controller and views so that users can create, view, edit, and delete their documents.
+Next, we will continue expanding the previous example to allow users to save their markdown documents and later re-edit or even share them.
+
+To achieve this, we need to modify the controller and views so that users can create, view, edit, and delete their documents.
+
+
+**Before you edit:** stop the server with **Ctrl+C**.
+
+```bash
+cd ~/Source/MyOrg.MarkToHtml
+```
+
+This returns to the repository root. All `src/` paths below start here.
+
+**Our goal:** save a note, edit that same note, and find it in your document list.
 
 ## Step 5.1 Save and Update User Documents
 
-First, we need to modify the `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` file and add the necessary using statements:
+First, we need to modify the `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs` file and check the using statements at the top. Add only the missing entries from this list; do not paste a second copy of imports already present:
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -31,9 +44,13 @@ public class HomeController(
     MarkToHtmlService mtohService) : Controller
 ```
 
-Next, we refactor the `Index` method. For unauthenticated users, we directly render HTML to keep the core functionality unchanged. For authenticated users, we directly add or update their documents in the database, then hand over to the specific `Edit` method for rendering.
+Next, we refactor the `Index` method.
 
-Modify the `Index` method to:
+For unauthenticated users, we directly render HTML to keep the core functionality unchanged.
+
+For authenticated users, we directly add or update their documents in the database, then hand over to the specific `Edit` method for rendering.
+
+Replace the **POST Index action only**, including its `[HttpPost]` and `[ValidateAntiForgeryToken]` attributes, with this block. Keep the parameterless GET Index action:
 
 ```csharp
 [HttpPost]
@@ -137,7 +154,13 @@ else
 }
 ```
 
-For unauthenticated users, we directly render the content as HTML to keep the core functionality unchanged. For authenticated users, we need to support saving and updating their documents. Therefore, during the first submission, we can save the document into the database and establish the association between DocumentId and UserId. Afterward, when the user submits again, we can locate the corresponding document using DocumentId and UserId, and then update its content and title.
+For unauthenticated users, we directly render the content as HTML to keep the core functionality unchanged.
+
+For authenticated users, we need to support saving and updating their documents.
+
+Therefore, during the first submission, we can save the document into the database and establish the association between DocumentId and UserId.
+
+Afterward, when the user submits again, we can locate the corresponding document using DocumentId and UserId, and then update its content and title.
 
 Our code is:
 
@@ -189,13 +212,37 @@ Our previous `Index` method can already save documents for authenticated users i
 
 ### Step 5.2.2 Adjust the Index View
 
-Considering that creation and editing share the same view, we add an `IsEditing` property in the `IndexViewModel` to distinguish between the current creation or editing state. We also add a `SavedSuccessfully` property to display a success message on the edit page.
+Considering that creation and editing share the same view, we add an `IsEditing` property in the `IndexViewModel` to distinguish between the current creation or editing state.
 
-For example, in edit mode, in addition to allowing the user to edit the document, we can also allow them to edit the document's title. We can add an input field in the view for editing the title. We also add a hidden input control on the edit page to carry the `DocumentId` when submitting. The `DocumentId` is used to identify the user's document. For each new GET request, we generate a new ID each time. To ensure that this ID remains unchanged during repeated edit submissions, we need to submit it as a hidden field in the view.
+We also add a `SavedSuccessfully` property to display a success message on the edit page.
 
-This way, we can build a very ideal user experience: users can create new documents, and on the edit page, they can see the current document's title and content and modify them. On the first submission, a new document is created and a new `DocumentId` is generated. On each subsequent edit submission, the `DocumentId` is carried along so that the server-side can identify which document it is and update its content and title accordingly.
+For example, in edit mode, in addition to allowing the user to edit the document, we can also allow them to edit the document's title.
 
-Modify the `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` file, and add the following code above the Markdown input area on the left:
+We can add an input field in the view for editing the title.
+
+We also add a hidden input control on the edit page to carry the `DocumentId` when submitting.
+
+The `DocumentId` is used to identify the user's document.
+
+For each new GET request, we generate a new ID each time.
+
+To ensure that this ID remains unchanged during repeated edit submissions, we need to submit it as a hidden field in the view.
+
+This way, we can build a very ideal user experience: users can create new documents, and on the edit page, they can see the current document's title and content and modify them.
+
+On the first submission, a new document is created and a new `DocumentId` is generated.
+
+On each subsequent edit submission, the `DocumentId` is carried along so that the server-side can identify which document it is and update its content and title accordingly.
+
+Open `src/MyOrg.MarkToHtml/Views/Home/Index.cshtml`.
+
+Find the `@* Left Column: Markdown Input *@` comment.
+
+Replace that whole left-column block with the code below.
+
+Stop immediately before `@* Right Column: HTML Output & Preview *@`; keep the right column unchanged.
+
+Do not add a second Markdown textarea or a second form:
 
 ```html
 @* Left Column: Markdown Input *@
@@ -235,7 +282,6 @@ Modify the `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` file, and add the fo
     @if (Model.IsEditing)
     {
         <input type="hidden" asp-for="DocumentId" />
-        ...
     }
     ```
 
@@ -246,9 +292,6 @@ This way, in edit mode, users can see a title input box where they can add a tit
 Additionally, we add a message box at the top of the form to display a success message upon successful save. Add the following code to the `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` file, immediately before the `<form>` tag:
 
 ```html
-... Other code ...
-</div>
-
 @if (Model.SavedSuccessfully)
 {
     <div class="alert alert-success alert-dismissible" role="alert">
@@ -265,8 +308,6 @@ Additionally, we add a message box at the top of the form to display a success m
     </div>
 }
 
-<form asp-action="Index" method="post" id="markdown-form">
-... Other code ...
 ```
 
 Thus, if the user is redirected back after saving from the edit page, they will see a green alert box informing them that the document has been successfully saved.
@@ -284,6 +325,37 @@ Thus, if the user is redirected back after saving from the edit page, they will 
     This way, every time a submission is made, the `DocumentId` is submitted to the server. Otherwise, each user submission would generate a new ID, preventing updates to previous documents and resulting in endless creation of new documents.
 
     Of course, the core feature—viewing one's own document list—has not yet been implemented. We will implement this in the next step.
+
+
+## Checkpoint 5A - Save and edit the same note
+
+Save the files in your editor first. Let's check this small piece before going on.
+
+```bash
+dotnet build ./MyOrg.MarkToHtml.sln
+```
+
+This compiles the solution. **Expected:** `Build succeeded.` with no errors.
+If it fails, stop here and check the first error's file and line number.
+
+```bash
+dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```
+
+This starts the app with the changes you just made.
+Open the listening address in your browser.
+
+- Sign in as `admin`. Anonymous conversions are not saved.
+- Enter a distinctive note and click **Convert to HTML**.
+  At this point that button also saves when you are signed in.
+- The URL should change to `/Home/Edit/<document-id>`.
+- Change its title and content, then save again.
+- Confirm the ID stays the same and the success message appears.
+
+If this fails, revisit the model properties in 5.1.1 and the Edit action and view in 5.2.
+
+Finished checking? Press **Ctrl+C** and wait for the terminal prompt.
+You have a working stopping point now.
 
 ## Step 5.3 Create the User Document List Page
 
@@ -434,15 +506,29 @@ Create the file `./src/MyOrg.MarkToHtml/Views/Home/History.cshtml` and add the f
 
 This view uses a table to display all documents of the user. Each row shows the document's title, creation time, content length, and action buttons (edit and delete). Clicking on a row navigates to the edit page.
 
-Note that we use a trick here: the `data-utc-time` attribute stores the UTC time. The JavaScript provided by Aiursoft Template automatically converts it to the user's local time and displays it. Do you remember how we defined the `CreationTime` property when designing the entity? The code back then was:
+Note that we use a trick here: the `data-utc-time` attribute stores the UTC time.
+
+The JavaScript provided by Aiursoft Template automatically converts it to the user's local time and displays it.
+
+Do you remember how we defined the `CreationTime` property when designing the entity?
+
+The code back then was:
 
 ```csharp
 public DateTime CreationTime { get; init; } = DateTime.UtcNow;
 ```
 
-Therefore, when this entity is created, the UTC time at that moment is already stored in the database. Converting to the local time zone is handled by JavaScript on the user's device. This ensures that regardless of the user's time zone, the displayed time is always in their local time.
+Therefore, when this entity is created, the UTC time at that moment is already stored in the database.
 
-Finally, to help users easily return to their document list from the edit page, we add a back button to the left of the submit button in the `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` file. Additionally, for authenticated users, we emphasize that the convert button has a save function. The modification is as follows:
+Converting to the local time zone is handled by JavaScript on the user's device.
+
+This ensures that regardless of the user's time zone, the displayed time is always in their local time.
+
+Finally, to help users easily return to their document list from the edit page, we add a back button to the left of the submit button in the `./src/MyOrg.MarkToHtml/Views/Home/Index.cshtml` file.
+
+Additionally, for authenticated users, we emphasize that the convert button has a save function.
+
+The modification is as follows:
 
 ```html
     @* Submit Button Row *@
@@ -481,7 +567,13 @@ Of course, we haven't implemented the document deletion feature yet. We will imp
 
 ## Step 5.4 Implement the Document Deletion Feature
 
-After completing the creation, editing, and listing features, deletion naturally becomes the final feature to implement. By now, you should be proficient in using Entity Framework Core to manipulate data in the database. The document deletion feature is no exception. You can try implementing it yourself, or refer to the code below.
+After completing the creation, editing, and listing features, deletion naturally becomes the final feature to implement.
+
+By now, you should be proficient in using Entity Framework Core to manipulate data in the database.
+
+The document deletion feature is no exception.
+
+You can try implementing it yourself, or refer to the code below.
 
 In the file `./src/MyOrg.MarkToHtml/Controllers/HomeController.cs`, add the following code:
 
@@ -619,12 +711,272 @@ Create the `./src/MyOrg.MarkToHtml/Views/Home/Delete.cshtml` file and add the fo
 
 This view displays a confirmation page for deletion, listing the title and creation time of the documents to be deleted, along with confirm and cancel buttons.
 
-## Conclusion
 
-Congratulations on completing Step 5! You have now successfully implemented a full CRUD (Create, Read, Update, Delete) functionality, allowing users to create, edit, view, and delete their Markdown documents.
+### Code checkpoint - compare the completed files
 
-By properly using Entity Framework Core, you can easily manipulate data in the database without worrying about manually writing SQL statements or dealing with inconsistencies between the database schema and entity classes.
+Here is the complete HomeController.cs at the end of Step 5.
+Use it to check that none of the earlier actions were accidentally removed.
 
-Throughout this process, we cleverly shared the same view for both creation and editing, reducing code duplication and improving code maintainability. Additionally, we handled anonymous users and authenticated users differently, ensuring that anonymous users can use the system anonymously while authenticated users enjoy additional features.
+```csharp title="Controllers/HomeController.cs"
+using System.ComponentModel.DataAnnotations;
+using Aiursoft.CSTools.Tools;
+using MyOrg.MarkToHtml.Models.HomeViewModels;
+using MyOrg.MarkToHtml.Services;
+using Aiursoft.UiStack.Navigation;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MyOrg.MarkToHtml.Entities;
 
-Now run the application and try creating, editing, viewing, and deleting your documents to experience the full functionality!
+
+namespace MyOrg.MarkToHtml.Controllers;
+
+public class HomeController(
+    ILogger<HomeController> logger,
+    UserManager<User> userManager,
+    TemplateDbContext context,
+    MarkToHtmlService mtohService) : Controller
+{
+    [RenderInNavBar(
+        NavGroupName = "Features",
+        NavGroupOrder = 1,
+        CascadedLinksGroupName = "Home",
+        CascadedLinksIcon = "home",
+        CascadedLinksOrder = 1,
+        LinkText = "Convert Document",
+        LinkOrder = 1)]
+    public IActionResult Index()
+    {
+        return this.StackView(new IndexViewModel());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Index(IndexViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return this.StackView(model);
+        }
+
+        var userId = userManager.GetUserId(User);
+        if (User.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(userId))
+        {
+            // If the user is authenticated, this action only saves the document in the database. And it's `edit` action to render it.
+            // And go to the edit page.
+            logger.LogTrace("Authenticated user submitted a document with ID: '{Id}'. Save it to the database.",
+                model.DocumentId);
+            var documentInDb = await context.MarkdownDocuments
+                .FirstOrDefaultAsync(d => d.Id == model.DocumentId && d.UserId == userId);
+            var isExistingDocument = documentInDb != null;
+            if (documentInDb != null)
+            {
+                logger.LogInformation("Updating the document with ID: '{Id}'.", model.DocumentId);
+                documentInDb.Content = model.InputMarkdown.SafeSubstring(65535);
+                documentInDb.Title = model.Title;
+            }
+            else
+            {
+                logger.LogInformation("Creating a new document with ID: '{Id}'.", model.DocumentId);
+                model.DocumentId = Guid.NewGuid();
+                var newDocument = new MarkdownDocument
+                {
+                    Id = model.DocumentId,
+                    Content = model.InputMarkdown.SafeSubstring(65535),
+                    Title = model.InputMarkdown.SafeSubstring(40),
+                    UserId = userId
+                };
+                context.MarkdownDocuments.Add(newDocument);
+            }
+
+            await context.SaveChangesAsync();
+            return RedirectToAction(nameof(Edit), new { id = model.DocumentId, saved = isExistingDocument });
+        }
+        else
+        {
+
+            // If the user is not authenticated, just show the result.
+            logger.LogInformation(
+                "An anonymous user submitted a document with ID: '{Id}'. It was not saved to the database.",
+                model.DocumentId);
+            model.OutputHtml = mtohService.ConvertMarkdownToHtml(model.InputMarkdown);
+            return this.StackView(model);
+        }
+    }
+
+    [Authorize]
+    public async Task<IActionResult> Edit([Required][FromRoute] Guid id, [FromQuery] bool? saved = false)
+    {
+        var userId = userManager.GetUserId(User);
+        var document = await context.MarkdownDocuments.FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
+
+        if (document == null)
+        {
+            return NotFound("The document was not found or you do not have permission to edit it.");
+        }
+
+        var model = new IndexViewModel
+        {
+            DocumentId = document.Id,
+            Title = document.Title,
+            InputMarkdown = document.Content ?? string.Empty,
+            OutputHtml = mtohService.ConvertMarkdownToHtml(document.Content ?? string.Empty),
+            IsEditing = true,
+            SavedSuccessfully = saved ?? false
+        };
+
+        return this.StackView(model: model, viewName: nameof(Index)); // Reuse the Index view for editing.
+    }
+
+    [Authorize]
+    [RenderInNavBar(
+        NavGroupName = "Features",
+        NavGroupOrder = 1,
+        CascadedLinksGroupName = "Home",
+        CascadedLinksIcon = "history",
+        CascadedLinksOrder = 2,
+        LinkText = "My documents",
+        LinkOrder = 2)]
+    public async Task<IActionResult> History()
+    {
+        var userId = userManager.GetUserId(User);
+        var documents = await context.MarkdownDocuments
+            .Where(d => d.UserId == userId)
+            .OrderByDescending(d => d.CreationTime)
+            .ToListAsync();
+
+        var model = new HistoryViewModel
+        {
+            MyDocuments = documents
+        };
+        return this.StackView(model);
+    }
+
+    // GET: /Home/Delete/{guid}
+    [Authorize]
+    public async Task<IActionResult> Delete(Guid? id)
+    {
+        if (id == null)
+        {
+            return NotFound();
+        }
+
+        var userId = userManager.GetUserId(User);
+        var document = await context.MarkdownDocuments
+            .FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
+
+        if (document == null)
+        {
+            // Document not found or user does not have permission.
+            return NotFound();
+        }
+
+        return this.StackView(new DeleteViewModel
+        {
+            Document = document
+        });
+    }
+
+    // POST: /Home/Delete/{guid}
+    [HttpPost, ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    [Authorize]
+    public async Task<IActionResult> DeleteConfirmed(Guid id)
+    {
+        var userId = userManager.GetUserId(User);
+        var document = await context.MarkdownDocuments
+            .FirstOrDefaultAsync(d => d.Id == id && d.UserId == userId);
+
+        if (document == null)
+        {
+            return NotFound();
+        }
+
+        context.MarkdownDocuments.Remove(document);
+        await context.SaveChangesAsync();
+
+        logger.LogInformation("Document with ID: '{Id}' was deleted by user: '{UserId}'.", id, userId);
+
+        return RedirectToAction(nameof(History));
+    }
+
+}
+```
+
+Here is the complete IndexViewModel.cs at the same point:
+
+```csharp title="Models/HomeViewModels/IndexViewModel.cs"
+using System.ComponentModel.DataAnnotations;
+using Aiursoft.UiStack.Layout;
+
+namespace MyOrg.MarkToHtml.Models.HomeViewModels;
+
+public class IndexViewModel : UiStackLayoutViewModel
+{
+    public IndexViewModel()
+    {
+        PageTitle = "Markdown to HTML Converter";
+    }
+
+    [Required(ErrorMessage = "Please input your markdown content!")]
+    public string InputMarkdown { get; set; } = """
+                                                # Hello world!
+
+                                                > Quote
+
+                                                [Link](https://www.aiursoft.com/)
+
+                                                | Month    | Savings |
+                                                | -------- | ------- |
+                                                | January  | $250    |
+                                                | February | $80     |
+                                                | March    | $420    |
+
+                                                """;
+
+    public string OutputHtml { get; set; } = string.Empty;
+    [Required(ErrorMessage = "Something went wrong, please try again later.")]
+    public Guid DocumentId { get; set; } = Guid.NewGuid();
+
+    public bool IsEditing { get; init; }
+
+    [MaxLength(100)]
+    public string? Title { get; set; }
+
+    public bool SavedSuccessfully { get; set; }
+
+}
+```
+
+## Checkpoint 5B - History and deletion work
+
+Save the files in your editor first. Let's check this small piece before going on.
+
+```bash
+dotnet build ./MyOrg.MarkToHtml.sln
+```
+
+This compiles the solution. **Expected:** `Build succeeded.` with no errors.
+If it fails, stop here and check the first error's file and line number.
+
+```bash
+dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```
+
+This starts the app with the changes you just made.
+Open the listening address in your browser.
+
+- Save two notes with different titles.
+- Open **My Documents** and confirm both appear.
+- Edit one from the list; confirm its content is the saved content.
+- Delete the other, confirm the deletion, and check it disappears.
+- Sign out. Register a second account and confirm it cannot see the first account's notes.
+- Paste the first account's Edit URL while signed in as the second account: it should be rejected.
+
+Deletion is permanent at this stage. We will add a recycle bin in Step 10.
+
+Finished checking? Press **Ctrl+C** and wait for the terminal prompt.
+You have a working stopping point now.
+
+Continue with [Step 6](./step6.md).

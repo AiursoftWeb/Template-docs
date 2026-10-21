@@ -7,6 +7,17 @@ We can extend the previous example to allow users to save their Markdown documen
 
 Before changing the database schema, we first need to understand the database ORM tool used by Aiursoft Template: [Entity Framework Core (EF Core)](https://learn.microsoft.com/en-us/ef/core/).
 
+
+**Before you edit:** stop the server with **Ctrl+C**.
+
+```bash
+cd ~/Source/MyOrg.MarkToHtml
+```
+
+This returns to the repository root. All `src/` paths below start here.
+
+**Our goal:** add the document table without losing the generated identity and settings tables.
+
 ## Step 4.1 Understand Entity Framework Core (Optional)
 
 If you are very familiar with Entity Framework Core, you can skip this step.
@@ -35,9 +46,21 @@ ORDER BY PublishedDate
 LIMIT 10 OFFSET 10;
 ```
 
-However, considering that we might modify the structure of some entity classes—such as adding new properties, removing old ones, or changing property types—it is necessary to keep the database structure synchronized with the entity classes. To achieve this, we need to use EF Core's migration (Migration) feature.
+However, considering that we might modify the structure of some entity classes—such as adding new properties, removing old ones, or changing property types—it is necessary to keep the database structure synchronized with the entity classes.
 
-In this example, we will create a new table called `MarkdownDocuments` to store users' markdown documents. However, this table does not currently exist in the real database. Therefore, we need to create a migration to instruct EF Core how to create this table. A migration contains information about changes to the database schema. When the application starts, it automatically compares the version of the database table structure with the latest migration version and runs any necessary migrations automatically. This ensures that the database structure remains synchronized with the entity classes.
+To achieve this, we need to use EF Core's migration (Migration) feature.
+
+In this example, we will create a new table called `MarkdownDocuments` to store users' markdown documents.
+
+However, this table does not currently exist in the real database.
+
+Therefore, we need to create a migration to instruct EF Core how to create this table.
+
+A migration contains information about changes to the database schema.
+
+When the application starts, it automatically compares the version of the database table structure with the latest migration version and runs any necessary migrations automatically.
+
+This ensures that the database structure remains synchronized with the entity classes.
 
 !!! warning "Do not forget to create a migration after modifying entity classes!"
 
@@ -80,7 +103,7 @@ In the existing `User.cs`, keep all generated properties and the default avatar 
 using System.ComponentModel.DataAnnotations.Schema;
 using Newtonsoft.Json;
 ```
-and add this navigation property inside `User`:
+Find `public class User : IdentityUser`. Insert this navigation property **inside that class**, just before its final closing brace:
 
 ```csharp
 [JsonIgnore]
@@ -90,50 +113,87 @@ public IEnumerable<MarkdownDocument> CreatedDocuments { get; set; } = new List<M
 
 `UserId` and `User` establish ownership. `JsonIgnore` prevents serializing the inverse document collection; nullable-analysis attributes are not serialization rules.
 
-In the existing `src/MyOrg.MarkToHtml.Entities/MarkToHtmlDbContext.cs`, add:
+Open `src/MyOrg.MarkToHtml.Entities/MarkToHtmlDbContext.cs`.
+Find the `GlobalSettings` DbSet inside `TemplateDbContext`.
+Insert this **additional** DbSet after it, before the class closes:
 
 ```csharp
 public DbSet<MarkdownDocument> MarkdownDocuments => Set<MarkdownDocument>();
 ```
 
+Your DbSet area should now contain both entries:
+
+```csharp
+public DbSet<GlobalSetting> GlobalSettings => Set<GlobalSetting>();
+public DbSet<MarkdownDocument> MarkdownDocuments => Set<MarkdownDocument>();
+```
+
+This is a comparison snippet, not the whole context file. Keep its constructor and methods.
+
 The file name is `MarkToHtmlDbContext.cs`, but its generated class is still `TemplateDbContext`. Preserve its existing `GlobalSettings` DbSet, identity mappings and migration methods; add the new DbSet inside the existing class.
 
 ## Step 4.3 Create Migration and Update Database
 
-Aiursoft Template supports multiple databases, including SQLite, MySQL, InMemory, and more. Users can also extend support to other databases, such as `PostgreSQL`, `SQL Server`, etc. Here, we will create migrations only for the default SQLite and MySQL. The InMemory database does not require migrations because it is temporary and recreated every time the application starts.
+Aiursoft Template supports multiple databases, including SQLite, MySQL, InMemory, and more.
+
+Users can also extend support to other databases, such as `PostgreSQL`, `SQL Server`, etc.
+
+Here, we will create migrations only for the default SQLite and MySQL.
+
+The InMemory database does not require migrations because it is temporary and recreated every time the application starts.
 
 !!! tip "Migration is a noun; it does not mean immediate database changes"
 
     A Migration is a noun that represents changes to the database schema. We create a migration to inform EF Core how to alter the database structure. When the application starts, it automatically compares the version of the database schema with the latest migration version and runs any missing migrations automatically. This ensures the database schema stays synchronized with the entity classes.
 
-To create a migration, we need to use the Entity Framework Core command-line tool `dotnet ef`. If you haven't installed it yet, you can use the following command to install:
+We installed the EF tool in Step 1. Let's check that this terminal can still find it:
 
 ```bash
-dotnet tool install --global dotnet-ef --version '10.*'
+dotnet ef --version
 ```
+
+This checks the migration tool. **Expected:** version 10.x.
+If it is missing, repeat Step 1's PATH setup before reinstalling anything.
 
 ### Step 4.3.1 Create Migration for SQLite
 
-Next, we need to create migrations for both SQLite and MySQL. When creating a migration for SQLite, ensure that `ConnectionStrings.DbType` in `./src/MyOrg.MarkToHtml/appsettings.json` is set to `Sqlite`, and that `DefaultConnection` points to a SQLite database file, for example:
+Next, we need to create migrations for both SQLite and MySQL.
+
+When creating a migration for SQLite, ensure that `ConnectionStrings.DbType` in `./src/MyOrg.MarkToHtml/appsettings.json` is set to `Sqlite`, and that `DefaultConnection` points to a SQLite database file, for example:
+
+Change **only the existing ConnectionStrings object** to match this comparison.
+Keep Storage, AppSettings, logging, and every other section in the file.
 
 ```json
-{
-  "ConnectionStrings": {
+"ConnectionStrings": {
     "AllowCache": "True",
     "DbType": "Sqlite",
     "DefaultConnection": "DataSource=app.db;Cache=Shared"
-  },
-  // ... other settings ...
-}
+},
 ```
 
 Then, run the following command to create the migration:
 
 ```bash
-cd ./src/MyOrg.MarkToHtml.Sqlite/
-dotnet ef migrations add AddMarkdownDocumentsTable --context "SqliteContext" -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
-cd ../.. # Repository root
+cd src/MyOrg.MarkToHtml.Sqlite
 ```
+
+This moves from the repository root into the Sqlite migration project.
+
+```bash
+dotnet ef migrations add AddMarkdownDocumentsTable --context "SqliteContext" -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```
+
+This generates the migration. `--context` selects SqliteContext.
+`-s` points to the web project that loads the application's settings.
+**Expected:** `Done`, with a new migration file in this provider's Migrations folder.
+It does not apply the schema change yet.
+
+```bash
+cd ../..
+```
+
+This moves up twice, returning to the repository root.
 
 !!! note "The above command will not change any database schema!"
 
@@ -141,7 +201,7 @@ cd ../.. # Repository root
 
 You will notice output similar to:
 
-```bash
+```text
 Done. To undo this action, use 'ef migrations remove'
 ```
 
@@ -198,29 +258,39 @@ namespace MyOrg.MarkToHtml.Sqlite.Migrations
 }
 ```
 
-We need to carefully Review the changes above. When this new migration runs, it will create a new table `MarkdownDocuments` and include all columns and constraints defined in our data model, including the foreign key constraints we defined. The `onDelete: ReferentialAction.Cascade` indicates that when a user is deleted, the associated documents will be automatically deleted as well. This is in line with our expectations.
+We need to carefully Review the changes above.
+
+When this new migration runs, it will create a new table `MarkdownDocuments` and include all columns and constraints defined in our data model, including the foreign key constraints we defined.
+
+The `onDelete: ReferentialAction.Cascade` indicates that when a user is deleted, the associated documents will be automatically deleted as well.
+
+This is in line with our expectations.
 
 !!! danger "Be sure to carefully Review the migration file to ensure it meets expectations"
 
     Migration files are auto-generated, but they may not always align with our expectations. For example, sometimes we rename a column, but EF Core might treat it as a new column, discarding the old column's data and creating a new empty column. This can be catastrophic for a production system.
-    
+
     Therefore, after creating each migration, we should carefully Review the generated migration file to ensure it meets our expectations. If any issues are found, we can manually modify the model file or the migration file, or delete the migration and recreate it.
 
 The `Down` method is used to roll back the migration, which means dropping the `MarkdownDocuments` table. This is as expected, so we can proceed.
 
 ### Step 4.3.2 Create Migration for MySQL
 
-Next, we need to create a migration for MySQL. When creating a migration for MySQL, ensure that `./src/MyOrg.MarkToHtml/appsettings.json` has `ConnectionStrings.DbType` set to `MySQL`, and that `DefaultConnection` points to a MySQL database. The file can be modified to start like this:
+Next, we need to create a migration for MySQL.
+
+When creating a migration for MySQL, ensure that `./src/MyOrg.MarkToHtml/appsettings.json` has `ConnectionStrings.DbType` set to `MySQL`, and that `DefaultConnection` points to a MySQL database.
+
+The file can be modified to start like this:
+
+Change **only the existing ConnectionStrings object** to match this comparison.
+Keep Storage, AppSettings, logging, and every other section in the file.
 
 ```json
-{
-  "ConnectionStrings": {
+"ConnectionStrings": {
     "AllowCache": "True",
     "DbType": "MySql",
     "DefaultConnection": "Server=localhost;Database=template;Uid=template;Pwd=template_password;"
-  },
-  // ... other settings ...
-}
+},
 ```
 
 The settings belong to the web project, not the MySql class library. Start from the repository root. Choose an unused local port if 3306 is occupied and use the same port in the connection string.
@@ -228,8 +298,29 @@ The settings belong to the web project, not the MySql class library. Start from 
 Next, to create a migration, we must start a real MySQL. We can use Docker to quickly start a MySQL instance:
 
 ```bash
-sudo docker run -d --name tutorial-mysql -e MYSQL_RANDOM_ROOT_PASSWORD=true -e MYSQL_DATABASE=template -e MYSQL_USER=template -e MYSQL_PASSWORD=template_password -p 127.0.0.1:3306:3306 mysql:9.7.0
+sudo docker run -d --name tutorial-mysql \
+  -e MYSQL_RANDOM_ROOT_PASSWORD=true \
+  -e MYSQL_DATABASE=template \
+  -e MYSQL_USER=template \
+  -e MYSQL_PASSWORD=template_password \
+  -p 127.0.0.1:3306:3306 \
+  mysql:9.7.0
 ```
+
+Copy the whole block as one command. A backslash joins the following line.
+
+- `-d` runs the database in the background.
+- `--name tutorial-mysql` names this disposable container.
+- `MYSQL_RANDOM_ROOT_PASSWORD` keeps us from using an example root password.
+- `MYSQL_DATABASE` creates the `template` database.
+- `MYSQL_USER` and `MYSQL_PASSWORD` create our tutorial application's database account.
+- `-p 127.0.0.1:3306:3306` exposes it only on this machine, at the port in our connection string.
+- `mysql:9.7.0` selects the database image.
+
+**Expected:** Docker prints a container ID. The database is not ready instantly.
+If Docker says it cannot connect to its service, finish the Docker setup from Step 1.
+If port 3306 is occupied, use an unused local port and add `Port=<your-port>;` to DefaultConnection.
+Do not stop another application's database.
 
 !!! info "Creating a migration requires a connection to the database"
 
@@ -241,42 +332,77 @@ Wait until a query using the application database user succeeds:
 sudo docker exec tutorial-mysql sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql -u "$MYSQL_USER" "$MYSQL_DATABASE" -e "SELECT 1"'
 ```
 
+`docker exec` runs a command inside the named container.
+The small shell command uses that container's configured application username and password.
+`SELECT 1` is a harmless readiness query.
+
+**Expected:** a column containing `1` and no connection error.
+If it fails while MySQL is starting, wait a few seconds and run that same check again.
+Do not print the random root password or change the app to use root.
+
 This meets our application's connection string requirements. At this point, we can use the following command to create a migration:
 
 ```bash
-cd ./src/MyOrg.MarkToHtml.MySql/ # From the repository root
-dotnet ef migrations add AddMarkdownDocumentsTable --context "MySqlContext" -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
-cd ../.. # Repository root
+cd src/MyOrg.MarkToHtml.MySql
 ```
 
-Similarly, a new migration file will be generated under the `./src/MyOrg.MarkToHtml.MySql/Migrations/` directory, named something like `20231010123456_AddMarkdownDocumentsTable.cs`. Carefully review its content to ensure it meets your expectations, then proceed.
+This moves from the repository root into the MySql migration project.
 
-### Step 4.3.3 Cleanup: Remove Database, Rollback appsettings.json (Optional)
+```bash
+dotnet ef migrations add AddMarkdownDocumentsTable --context "MySqlContext" -s ../MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```
 
-Note: If you encounter errors when creating the migration, such as being unable to connect to the database or missing certain types, it may be because your MySQL server is not running properly, or you forgot to update the connection string in the `appsettings.json` file. Make sure your MySQL server is running and the connection string is correct.
+This generates the migration. `--context` selects MySqlContext.
+`-s` points to the web project that loads the application's settings.
+**Expected:** `Done`, with a new migration file in this provider's Migrations folder.
+It does not apply the schema change yet.
 
-!!! note "If you plan to continue using MySQL for debugging, you can skip this step"
+```bash
+cd ../..
+```
 
-    After completing the previous steps, you might want to continue using MySQL for debugging. In this case, you can skip the cleanup steps below and directly run the application.
+This moves up twice, returning to the repository root.
+
+Similarly, a new migration file will be generated under the `./src/MyOrg.MarkToHtml.MySql/Migrations/` directory, named something like `20231010123456_AddMarkdownDocumentsTable.cs`.
+
+Carefully review its content to ensure it meets your expectations, then proceed.
+
+### Step 4.3.3 Return to SQLite for the next chapter
+
+Note: If you encounter errors when creating the migration, such as being unable to connect to the database or missing certain types, it may be because your MySQL server is not running properly, or you forgot to update the connection string in the `appsettings.json` file.
+
+Make sure your MySQL server is running and the connection string is correct.
+
+For the main tutorial path, switch back to SQLite below.
+If you deliberately stay on MySQL, leave its container running. Do not stop the database your app still uses.
 
 Note: After creating the MySQL migration, if you no longer need this MySQL instance, you can stop and remove it using the following command:
 
 ```bash
 sudo docker stop tutorial-mysql
+```
+
+This stops only our named, disposable tutorial database.
+
+```bash
 sudo docker rm -v tutorial-mysql
 ```
 
-Meanwhile, for easier local debugging, it is recommended to revert the `ConnectionStrings.DbType` setting in the `appsettings.json` file back to `Sqlite`, and set `DefaultConnection` to point to a SQLite database file, for example:
+This removes that container and its anonymous data volume.
+It deletes the temporary MySQL data, not the migration source files we generated.
+Only use it on this disposable container.
+
+**Before starting the app again**, revert the `ConnectionStrings.DbType` setting in the `appsettings.json` file back to `Sqlite`, and set `DefaultConnection` to point to a SQLite database file, for example:
+
+Change **only the existing ConnectionStrings object** to match this comparison.
+Keep Storage, AppSettings, logging, and every other section in the file.
 
 ```json
-{
-  "ConnectionStrings": {
+"ConnectionStrings": {
     "AllowCache": "True",
     "DbType": "Sqlite",
     "DefaultConnection": "DataSource=app.db;Cache=Shared"
-  },
-  // ... other settings ...
-}
+},
 ```
 
 Every time you modify any entity class, you should repeat the steps in 4.3.1 and 4.3.2 to create new migrations. If you support additional databases, you should also create migrations for them.
@@ -313,9 +439,15 @@ services.AddSwitchableRelationalDatabase(
     ]);
 ```
 
-The code above is the core code for configuring the database support for this application. It selects which database to use based on the `ConnectionStrings.DbType` in the configuration file, and connects to the database using the `ConnectionStrings.DefaultConnection`.
+The code above is the core code for configuring the database support for this application.
 
-The `allowCache` setting indicates whether to allow caching the query results of the database in memory to improve performance. For a single instance, this value should typically be set to `True` to achieve significant performance improvements. However, for deployments with multiple instances, this value should be set to `False` to avoid issues with cache inconsistency.
+It selects which database to use based on the `ConnectionStrings.DbType` in the configuration file, and connects to the database using the `ConnectionStrings.DefaultConnection`.
+
+The `allowCache` setting indicates whether to allow caching the query results of the database in memory to improve performance.
+
+For a single instance, this value should typically be set to `True` to achieve significant performance improvements.
+
+However, for deployments with multiple instances, this value should be set to `False` to avoid issues with cache inconsistency.
 
 We also notice that in the unit test environment, the database type is forcibly set to `InMemory` to avoid dependencies on a real database.
 
@@ -327,7 +459,7 @@ dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
 
 During this run, you will notice the following output (note: it only appears on the first run):
 
-```bash
+```text
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
       Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
       SELECT "MigrationId", "ProductVersion"
@@ -359,8 +491,39 @@ info: MyOrg.MarkToHtml.Entities.TemplateDbContext[0]
       Migrated database associated with context TemplateDbContext
 ```
 
-As you can see, the application automatically detected that the database schema is inconsistent with the latest migration version, so it automatically applied the migration we just created, creating the `MarkdownDocuments` table. It will start directly on subsequent runs without reapplying the migration.
+As you can see, the application automatically detected that the database schema is inconsistent with the latest migration version, so it automatically applied the migration we just created, creating the `MarkdownDocuments` table.
 
-## Conclusion
+It will start directly on subsequent runs without reapplying the migration.
 
-Congratulations on completing Step 4! You have now successfully added a new data model and modified the database schema. By properly using Entity Framework Core's migration feature, you can easily manage changes to the database schema without worrying about writing SQL statements manually or dealing with inconsistencies between the database schema and entity classes. You can even switch flexibly between different databases without repeatedly recompiling the application.
+
+## Checkpoint 4 - The new table exists
+
+Save the files in your editor first. Let's check this small piece before going on.
+
+```bash
+dotnet build ./MyOrg.MarkToHtml.sln
+```
+
+This compiles the solution. **Expected:** `Build succeeded.` with no errors.
+If it fails, stop here and check the first error's file and line number.
+
+```bash
+dotnet run --project ./src/MyOrg.MarkToHtml/MyOrg.MarkToHtml.csproj
+```
+
+This starts the app with the changes you just made.
+Open the listening address in your browser.
+
+- Confirm `ConnectionStrings:DbType` is back to `Sqlite`.
+- Look for the new migration under the Sqlite project and another under MySql.
+- On the first app startup after the migration, look for `AddMarkdownDocumentsTable` in the migration log.
+- In a SQLite browser, open `src/MyOrg.MarkToHtml/app.db` and find `MarkdownDocuments`.
+- Existing login and settings tables should still exist.
+
+A migration file records a schema change. Starting the app applies the selected provider's pending migrations.
+Creating the file and applying it are two separate checkpoints.
+
+Finished checking? Press **Ctrl+C** and wait for the terminal prompt.
+You have a working stopping point now.
+
+Continue with [Step 5](./step5.md).
