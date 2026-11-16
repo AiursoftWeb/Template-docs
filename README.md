@@ -7,7 +7,7 @@ This repository contains the English Markdown source for the [Aiursoft Template 
 
 ### What is Template Documentation?
 
-This repository is the Markdown source for the Aiursoft ASP.NET Core project template, its features and step-by-step development tutorials. Read the published site at [https://template-docs.aiursoft.com/](https://template-docs.aiursoft.com/). The content is served by [DocsViewer](https://github.com/AiursoftWeb/DocsViewer), using `properdocs.yml` for navigation; the `mkdocs-app` repository tag does not mean this site is built with MkDocs.
+This repository is the Markdown source for the Aiursoft ASP.NET Core project template, its features and step-by-step development tutorials. Read the published site at [https://template-docs.aiursoft.com/](https://template-docs.aiursoft.com/). The content is served by [DocsViewer](https://github.com/AiursoftWeb/DocsViewer), using `properdocs.yml` for navigation; the viewer renders the content and provides site navigation.
 
 ## Installation
 
@@ -79,7 +79,7 @@ The existing check covers local Markdown links and images, unused/orphaned image
 
 **Preview and publication.** Review edited Markdown in your editor or repository preview; a full-site preview requires a configured DocsViewer instance. Host installation and upgrade belong to the viewer, while this repository supplies content. Keep the published site's current navigation and editing conventions when contributing.
 
-The original authoring workflow remains: edit `Docs/`, update `properdocs.yml`, keep chapter images under `images/`, then run the checker before review.
+To contribute, edit `Docs/`, update `properdocs.yml`, keep chapter images under `images/`, then run the checker before review.
 
 ## How to contribute
 
